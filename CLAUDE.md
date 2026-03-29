@@ -65,3 +65,5 @@ Before opening a PR, do a self-assessment. Every PR description MUST include the
 - **## Scope** — Was there scope creep? Unmet requirements? What was deferred and why?
 
 CI hard-fails if any section is missing or empty. Thin sections (≤1 line) get an advisory comment. A PR template is provided — fill in every section before submitting.
+
+After opening a PR, subscribe to PR activity (`subscribe_pr_activity`) and wait for CI to complete. CI will post a review checklist comment based on which files you changed (e.g. "core/ changed — did you add tests?"). Review each checklist item and address any gaps before requesting human review.
