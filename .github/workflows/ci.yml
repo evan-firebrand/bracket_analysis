@@ -58,3 +58,40 @@ jobs:
             }
           env:
             WARNINGS: ${{ steps.validate.outputs.warnings }}
+
+  review-checklist:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get changed files
+        id: files
+        run: |
+          echo "list<<EOF" >> $GITHUB_OUTPUT
+          git diff --name-only origin/main...HEAD >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Generate checklist
+        id: checklist
+        env:
+          CHANGED_FILES: ${{ steps.files.outputs.list }}
+        run: |
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          python scripts/review_checklist.py >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Post checklist comment
+        if: steps.checklist.outputs.body && !contains(steps.checklist.outputs.body, 'No review checklist')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: process.env.CHECKLIST
+            });
+          env:
+            CHECKLIST: ${{ steps.checklist.outputs.body }}
