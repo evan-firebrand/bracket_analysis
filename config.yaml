@@ -1,0 +1,23 @@
+anthropic:
+  model: "claude-sonnet-4-20250514"
+
+browser:
+  headless: true
+  viewport_width: 1280
+  viewport_height: 800
+
+espn_group:
+  url: "https://fantasy.espn.com/games/tournament-challenge-bracket-2026/group?id=5c58b8ab-f641-4c0a-8508-461911cc542f"
+  target_member: "Rebecca"
+
+results:
+  url: "https://www.espn.com/mens-college-basketball/scoreboard/_/group/100"
+
+odds:
+  url: "https://www.espn.com/mens-college-basketball/scoreboard/_/group/100"
+
+schedule:
+  results_times: ["08:00", "20:00"]
+  timezone: "US/Eastern"
+
+data_dir: "data"
