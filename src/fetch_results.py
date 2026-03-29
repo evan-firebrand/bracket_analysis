@@ -6,7 +6,7 @@ Output format matches docs/DATA_CONTRACT.md:
 - Only completed games included
 """
 
-from src.agent import run_agent, extract_json_from_response
+from src.agent import extract_json_from_response, run_agent
 from src.browser import BrowserSession
 from src.models import results_prompt_schema
 from src.storage import load_tournament
@@ -41,7 +41,8 @@ def fetch_results(
 The tournament structure has already been defined. Here are some of the team slugs in use:
 {team_list}, ... etc.
 
-Use these EXACT team slugs in your output. Team slugs are lowercase with underscores (e.g. duke, north_carolina, montana_st).
+Use these EXACT team slugs in your output. Team slugs are lowercase with underscores
+(e.g. duke, north_carolina, montana_st).
 
 Slot IDs follow this pattern:
 - Round 1: r1_{{region}}_{{highseed}}v{{lowseed}} (e.g. r1_east_1v16)
@@ -80,7 +81,7 @@ Important:
     data = extract_json_from_response(raw_response)
 
     if data is None:
-        print(f"Warning: Could not parse JSON from agent response.")
+        print("Warning: Could not parse JSON from agent response.")
         print(f"Raw response (first 500 chars): {raw_response[:500]}")
         return None
 

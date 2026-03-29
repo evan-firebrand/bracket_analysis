@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from analyses import CATEGORY_LABELS, discover_plugins, get_plugins_by_category
+from analyses import discover_plugins, get_plugins_by_category
 from core.context import AnalysisContext
 
 st.set_page_config(

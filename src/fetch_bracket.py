@@ -6,10 +6,9 @@ Output format matches docs/DATA_CONTRACT.md:
 - Slot IDs: r1_east_1v16, r2_east_1, r3_east_1, r4_east_1, r5_semi1, championship
 """
 
-from src.agent import run_agent, extract_json_from_response
+from src.agent import extract_json_from_response, run_agent
 from src.browser import BrowserSession
 from src.models import bracket_picks_prompt_schema
-
 
 TEAM_SLUG_INSTRUCTIONS = """
 Team slug rules (CRITICAL — must follow exactly):
@@ -77,7 +76,7 @@ Important:
     data = extract_json_from_response(raw_response)
 
     if data is None:
-        print(f"Warning: Could not parse JSON from agent response.")
+        print("Warning: Could not parse JSON from agent response.")
         print(f"Raw response (first 500 chars): {raw_response[:500]}")
         return None
 

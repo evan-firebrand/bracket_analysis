@@ -12,7 +12,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.loader import load_entries, load_results, load_tournament
 from core.scoring import (
-    POINTS_PER_ROUND,
     build_leaderboard,
     get_alive_teams,
     score_entry,

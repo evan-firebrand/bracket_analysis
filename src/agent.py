@@ -1,7 +1,9 @@
 """Core Claude computer use agent loop."""
 
 import json
+
 import anthropic
+
 from src.browser import BrowserSession
 
 COMPUTER_USE_BETA = "computer-use-2025-11-24"

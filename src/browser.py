@@ -1,7 +1,8 @@
 """Playwright browser lifecycle and action execution for Claude computer use."""
 
 import base64
-from playwright.sync_api import sync_playwright, Browser, Page
+
+from playwright.sync_api import Browser, Page, sync_playwright
 
 
 class BrowserSession:

@@ -6,7 +6,7 @@ Output format matches docs/DATA_CONTRACT.md:
 - Only alive (non-eliminated) teams included
 """
 
-from src.agent import run_agent, extract_json_from_response
+from src.agent import extract_json_from_response, run_agent
 from src.browser import BrowserSession
 from src.models import odds_prompt_schema
 from src.storage import load_tournament
@@ -80,7 +80,7 @@ Important:
     data = extract_json_from_response(raw_response)
 
     if data is None:
-        print(f"Warning: Could not parse JSON from agent response.")
+        print("Warning: Could not parse JSON from agent response.")
         print(f"Raw response (first 500 chars): {raw_response[:500]}")
         return None
 

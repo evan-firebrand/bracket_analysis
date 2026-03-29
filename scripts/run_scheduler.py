@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """Run the twice-daily scheduler for fetching results and odds."""
 
-import sys
 import os
+import sys
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import yaml
-from dotenv import load_dotenv
 from apscheduler.schedulers.blocking import BlockingScheduler
+from dotenv import load_dotenv
+
 from src.browser import BrowserSession
-from src.fetch_results import fetch_results
 from src.fetch_odds import fetch_odds
-from src.storage import save_results, save_odds
+from src.fetch_results import fetch_results
+from src.storage import save_odds, save_results
 
 
 def fetch_and_save():

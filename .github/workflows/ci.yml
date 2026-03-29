@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Lint
+        run: ruff check .
+      - name: Test
+        run: pytest
+
+  validate-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate PR description
+        id: validate
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          python scripts/validate_pr.py 2>warnings.txt
+          if [ -s warnings.txt ]; then
+            echo "warnings<<EOF" >> $GITHUB_OUTPUT
+            cat warnings.txt >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+      - name: Post advisory comment
+        if: always() && steps.validate.outputs.warnings
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const warnings = process.env.WARNINGS;
+            if (warnings && warnings.trim()) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `### PR Description Review\n\n${warnings}\n\nThis is an advisory — the sections above could use more detail.`
+              });
+            }
+          env:
+            WARNINGS: ${{ steps.validate.outputs.warnings }}

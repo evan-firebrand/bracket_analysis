@@ -11,7 +11,7 @@ import importlib
 import pkgutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Callable
 
 # Category display order and labels
 CATEGORY_ORDER = ["standings", "my_bracket", "matchups", "scenarios", "stories"]
