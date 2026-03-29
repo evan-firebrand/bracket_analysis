@@ -45,6 +45,8 @@ jobs:
       - name: Post advisory comment
         if: always() && steps.validate.outputs.warnings
         uses: actions/github-script@v7
+        env:
+          WARNINGS: ${{ steps.validate.outputs.warnings }}
         with:
           script: |
             const warnings = process.env.WARNINGS;
@@ -56,8 +58,6 @@ jobs:
                 body: `### PR Description Review\n\n${warnings}\n\nThis is an advisory — the sections above could use more detail.`
               });
             }
-          env:
-            WARNINGS: ${{ steps.validate.outputs.warnings }}
 
   review-checklist:
     if: github.event_name == 'pull_request'
@@ -85,6 +85,8 @@ jobs:
       - name: Post checklist comment
         if: steps.checklist.outputs.body && !contains(steps.checklist.outputs.body, 'No review checklist')
         uses: actions/github-script@v7
+        env:
+          CHECKLIST: ${{ steps.checklist.outputs.body }}
         with:
           script: |
             await github.rest.issues.createComment({
@@ -93,5 +95,3 @@ jobs:
               issue_number: context.issue.number,
               body: process.env.CHECKLIST
             });
-          env:
-            CHECKLIST: ${{ steps.checklist.outputs.body }}
