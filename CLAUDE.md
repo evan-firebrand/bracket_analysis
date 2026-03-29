@@ -9,8 +9,8 @@ Data collection layer for an NCAA tournament bracket analysis app. Uses Claude's
 - **Claude computer use beta**: `computer_20251124` with `client.beta.messages.create()` — see `src/agent.py`
 - **Browser**: Playwright Chromium (headless). Actions in `src/browser.py`, agent loop in `src/agent.py`
 - **ESPN group URL**: Configured in `config.yaml` under `espn_group.url`. Currently targets Rebecca's bracket.
-- **Data output**: Timestamped JSON files in `data/brackets/`, `data/results/`, `data/odds/` (gitignored)
-- **Data models are PLACEHOLDERS**: `src/models.py` has starter schemas. Final field definitions TBD by project owner.
+- **Data contract**: `docs/DATA_CONTRACT.md` defines exact schemas. All data uses team slugs and slot IDs.
+- **Data output**: Single JSON files — `data/tournament.json`, `data/results.json`, `data/odds.json`, `data/entries/player_brackets.json` (all gitignored)
 - **NCAA support**: Deferred. Only ESPN is implemented.
 
 ## How to run
@@ -40,7 +40,7 @@ src/browser.py        — Playwright browser + action execution
 src/fetch_bracket.py  — ESPN bracket extraction
 src/fetch_results.py  — Game results extraction
 src/fetch_odds.py     — Betting odds extraction
-src/models.py         — Data schemas (PLACEHOLDER)
+src/models.py         — Prompt schema helpers (aligned with docs/DATA_CONTRACT.md)
 src/storage.py        — JSON file read/write
 scripts/              — CLI entry points + scheduler
 config.yaml           — All configuration

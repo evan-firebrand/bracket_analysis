@@ -10,7 +10,7 @@ This is the **data collection layer** of a broader bracket analysis app. It hand
 
 2. **Results Fetching** — Navigates to the ESPN NCAA tournament scoreboard and extracts completed game scores/results.
 
-3. **Odds Fetching** — Extracts DraftKings betting lines (spread, moneyline, over/under) from ESPN game pages.
+3. **Odds Fetching** — Extracts team-level tournament advancement probabilities from ESPN (DraftKings/BPI).
 
 All three use **Claude's computer use API** (`computer_20251124` beta) to control a Playwright Chromium browser. Claude sees screenshots, decides what to click/scroll/type, and extracts data visually.
 
@@ -28,13 +28,18 @@ src/                        # Core modules
   fetch_bracket.py          # ESPN bracket extraction logic + prompts
   fetch_results.py          # Game results extraction logic + prompts
   fetch_odds.py             # Odds extraction logic + prompts
-  models.py                 # Data schemas (PLACEHOLDER - see below)
+  models.py                 # Prompt schema helpers (aligned with data contract)
   storage.py                # JSON file storage (read/write to data/)
 
+docs/
+  DATA_CONTRACT.md          # Exact schemas for all data files
+
 data/                       # Output directory (gitignored)
-  brackets/                 # e.g. espn_rebecca_2026-03-29T120000.json
-  results/                  # e.g. results_2026-03-29T120000.json
-  odds/                     # e.g. odds_2026-03-29T120000.json
+  tournament.json           # Tournament structure (teams, slots, bracket tree)
+  results.json              # Game results keyed by slot_id
+  odds.json                 # Team advancement probabilities
+  entries/
+    player_brackets.json    # All player bracket picks
 
 config.yaml                 # URLs, browser settings, schedule config
 ```
@@ -52,20 +57,15 @@ config.yaml                 # URLs, browser settings, schedule config
 
 Max 30 iterations per run as a safety cap.
 
-## Data Output Format
+## Data Contract
 
-Each saved file is a JSON envelope:
+See **`docs/DATA_CONTRACT.md`** for the complete data contract. Key points:
 
-```json
-{
-  "source": "espn",
-  "entry_id": "rebecca",
-  "fetched_at": "2026-03-29T12:00:00+00:00",
-  "data": [ ... ]
-}
-```
-
-**Data models in `src/models.py` are placeholders.** The schemas for bracket picks, game results, and odds will be finalized by the project owner. Current placeholder fields are reasonable defaults but may change.
+- **Team slugs**: lowercase, underscored (e.g. `duke`, `north_carolina`, `montana_st`)
+- **Slot IDs**: `r1_east_1v16`, `r2_east_1`, `r5_semi1`, `championship`
+- **Single files**: `data/results.json` and `data/odds.json` are overwritten each fetch (not timestamped)
+- **Validation**: Run `python scripts/validate_data.py` to check schema compliance
+- All data must use consistent team slugs and slot IDs across files
 
 ## Configuration
 
@@ -104,7 +104,7 @@ python scripts/run_scheduler.py
 
 ## For Other Agents / Downstream Consumers
 
-- **Data lives in `data/`** as timestamped JSON files. Use `src/storage.load_latest()` to get the most recent file.
+- **Data lives in `data/`** as single JSON files per data type. Use `src.storage.load_results()`, `load_odds()`, `load_brackets()`, `load_tournament()` to read them.
 - **To add a new data source**: create a new `src/fetch_*.py` module following the pattern in `fetch_bracket.py`. Write a prompt, call `run_agent()`, parse the JSON.
 - **To change what data is extracted**: modify the prompts in `src/fetch_*.py` and update schemas in `src/models.py`.
 - **NCAA bracket support** is planned but deferred. The architecture supports multiple sources — just add a new fetch function.
@@ -125,7 +125,7 @@ python scripts/run_scheduler.py
 - [x] Game results fetching from ESPN scoreboard
 - [x] Odds fetching (DraftKings lines from ESPN)
 - [x] Twice-daily scheduler
-- [x] JSON file storage with timestamps
-- [ ] Data models — **placeholder, awaiting final field definitions**
+- [x] JSON file storage matching data contract
+- [x] Data contract defined in `docs/DATA_CONTRACT.md`
 - [ ] NCAA bracket support — deferred
 - [ ] Bracket scoring / comparison — not yet implemented (downstream)

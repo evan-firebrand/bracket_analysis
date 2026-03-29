@@ -34,19 +34,21 @@ def fetch_and_save():
     with BrowserSession(headless=headless, width=width, height=height) as browser:
         # Results
         print("Fetching results...")
-        results_data = fetch_results(results_url, browser, model)
-        if results_data:
+        results_data = fetch_results(results_url, browser, model, data_dir)
+        if results_data and "results" in results_data:
             save_results(results_data, data_dir)
+            print(f"  {len(results_data['results'])} completed games saved.")
         else:
-            print("Warning: results fetch failed.")
+            print("  Warning: results fetch failed.")
 
         # Odds
         print("Fetching odds...")
-        odds_data = fetch_odds(odds_url, browser, model)
-        if odds_data:
+        odds_data = fetch_odds(odds_url, browser, model, data_dir)
+        if odds_data and "teams" in odds_data:
             save_odds(odds_data, data_dir)
+            print(f"  {len(odds_data['teams'])} teams' odds saved.")
         else:
-            print("Warning: odds fetch failed.")
+            print("  Warning: odds fetch failed.")
 
     print("=== Scheduled fetch complete ===\n")
 

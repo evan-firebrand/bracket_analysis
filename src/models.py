@@ -1,86 +1,99 @@
 """Data models for bracket analysis.
 
-PLACEHOLDER - These schemas will be refined once the user provides
-final field definitions. For now they serve as a guide for the
-Claude agent prompts and data validation.
+These match the data contract defined in docs/DATA_CONTRACT.md.
+The app uses team slugs (lowercase, underscored) and slot IDs
+(e.g. r1_east_1v16) as keys across all data files.
 """
 
-# Schema for a single bracket pick (one game prediction)
-BRACKET_PICK_SCHEMA = {
-    "round": "int (1-6, where 1=Round of 64, 6=Championship)",
-    "region": "str (East, West, South, Midwest, or Final Four)",
-    "game_number": "int (sequential within the round/region)",
-    "team1": "str (team name)",
-    "seed1": "int (1-16)",
-    "team2": "str (team name)",
-    "seed2": "int (1-16)",
-    "pick": "str (team name picked to win)",
-}
 
-# Schema for a single game result
-GAME_RESULT_SCHEMA = {
-    "round": "int (1-6)",
-    "region": "str",
-    "date": "str (YYYY-MM-DD)",
-    "team1": "str",
-    "score1": "int",
-    "team2": "str",
-    "score2": "int",
-    "winner": "str",
-    "status": "str (final, in_progress, scheduled)",
-}
-
-# Schema for odds on a single game
-ODDS_SCHEMA = {
-    "game_date": "str (YYYY-MM-DD)",
-    "team1": "str",
-    "team2": "str",
-    "spread": "float (negative means team1 favored, e.g. -6.5)",
-    "moneyline_team1": "int (e.g. -250)",
-    "moneyline_team2": "int (e.g. +210)",
-    "over_under": "float (e.g. 145.5)",
-    "source": "str (ESPN/DraftKings)",
-}
-
-
-def bracket_pick_prompt_schema() -> str:
-    """Return a JSON schema description for use in agent prompts."""
+def tournament_prompt_schema() -> str:
+    """JSON schema description for tournament structure extraction."""
     return """{
-    "round": <int 1-6>,
-    "region": "<East|West|South|Midwest|Final Four>",
-    "game_number": <int>,
-    "team1": "<team name>",
-    "seed1": <int 1-16>,
-    "team2": "<team name>",
-    "seed2": <int 1-16>,
-    "pick": "<team name picked to win>"
+    "year": 2026,
+    "teams": {
+        "<team_slug>": {"name": "<Display Name>", "seed": <1-16>, "region": "<East|West|South|Midwest>"},
+        ...
+    },
+    "slots": [
+        {
+            "slot_id": "<e.g. r1_east_1v16>",
+            "round": <1-6>,
+            "region": "<region or Final Four>",
+            "position": <int>,
+            "top_team": "<team_slug or null>",
+            "bottom_team": "<team_slug or null>",
+            "feeds_into": "<slot_id or null>"
+        },
+        ...
+    ]
 }"""
 
 
-def game_result_prompt_schema() -> str:
-    """Return a JSON schema description for use in agent prompts."""
+def bracket_picks_prompt_schema() -> str:
+    """JSON schema for player bracket picks extraction."""
     return """{
-    "round": <int 1-6>,
-    "region": "<region name>",
-    "date": "<YYYY-MM-DD>",
-    "team1": "<team name>",
-    "score1": <int>,
-    "team2": "<team name>",
-    "score2": <int>,
-    "winner": "<team name>",
-    "status": "<final|in_progress|scheduled>"
+    "player_name": "<name>",
+    "entry_name": "<bracket name>",
+    "picks": {
+        "<slot_id>": "<team_slug>",
+        "r1_east_1v16": "duke",
+        "r1_east_8v9": "north_carolina",
+        "r2_east_1": "duke",
+        ...all 63 slots...
+    }
+}"""
+
+
+def results_prompt_schema() -> str:
+    """JSON schema for game results extraction."""
+    return """{
+    "last_updated": "<ISO 8601 timestamp>",
+    "results": {
+        "<slot_id>": {
+            "winner": "<team_slug>",
+            "loser": "<team_slug>",
+            "score": "<score string e.g. 78-65>"
+        },
+        ...only completed games...
+    }
 }"""
 
 
 def odds_prompt_schema() -> str:
-    """Return a JSON schema description for use in agent prompts."""
+    """JSON schema for Vegas odds extraction.
+
+    Odds are team-level round advancement probabilities (0.0 to 1.0),
+    NOT per-game spreads or moneylines.
+    """
     return """{
-    "game_date": "<YYYY-MM-DD>",
-    "team1": "<team name>",
-    "team2": "<team name>",
-    "spread": <float>,
-    "moneyline_team1": <int>,
-    "moneyline_team2": <int>,
-    "over_under": <float>,
-    "source": "ESPN/DraftKings"
+    "last_updated": "<ISO 8601 timestamp>",
+    "source": "ESPN/DraftKings",
+    "teams": {
+        "<team_slug>": {
+            "championship": <float 0.0-1.0>,
+            "round_probs": {
+                "r2": <prob of reaching Round of 32>,
+                "r3": <prob of reaching Sweet 16>,
+                "r4": <prob of reaching Elite 8>,
+                "ff": <prob of reaching Final Four>,
+                "championship": <prob of reaching Championship game>,
+                "winner": <prob of winning it all>
+            }
+        },
+        ...only alive teams...
+    }
 }"""
+
+
+# Slot ID naming conventions for reference
+SLOT_ID_EXAMPLES = {
+    "Round 1 (R64)": "r1_east_1v16, r1_east_8v9, r1_west_2v15",
+    "Round 2 (R32)": "r2_east_1, r2_east_2",
+    "Round 3 (Sweet 16)": "r3_east_1, r3_east_2",
+    "Round 4 (Elite 8)": "r4_east_1",
+    "Round 5 (Final Four)": "r5_semi1, r5_semi2",
+    "Round 6 (Championship)": "championship",
+}
+
+# Team slug convention: lowercase, underscores, no special chars
+# Examples: duke, north_carolina, montana_st, st_marys, texas_am

@@ -40,11 +40,13 @@ def main():
             results_url=results_url,
             browser=browser,
             model=model,
+            data_dir=data_dir,
         )
 
-        if results_data:
+        if results_data and "results" in results_data:
             path = save_results(results_data, data_dir=data_dir)
-            print(f"Results saved to: {path}")
+            game_count = len(results_data["results"])
+            print(f"Results saved ({game_count} completed games): {path}")
         else:
             print("Warning: Failed to fetch results.")
 
@@ -54,11 +56,13 @@ def main():
             odds_url=odds_url,
             browser=browser,
             model=model,
+            data_dir=data_dir,
         )
 
-        if odds_data:
+        if odds_data and "teams" in odds_data:
             path = save_odds(odds_data, data_dir=data_dir)
-            print(f"Odds saved to: {path}")
+            team_count = len(odds_data["teams"])
+            print(f"Odds saved ({team_count} teams): {path}")
         else:
             print("Warning: Failed to fetch odds.")
 

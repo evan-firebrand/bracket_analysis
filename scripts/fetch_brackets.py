@@ -11,7 +11,7 @@ import yaml
 from dotenv import load_dotenv
 from src.browser import BrowserSession
 from src.fetch_bracket import fetch_espn_bracket
-from src.storage import save_bracket
+from src.storage import add_bracket_entry
 
 
 def main():
@@ -45,12 +45,16 @@ def main():
             model=model,
         )
 
-    if data:
-        entry_id = target.lower().replace(" ", "_")
-        path = save_bracket(data, source="espn", entry_id=entry_id, data_dir=data_dir)
-        print(f"Done! Bracket saved to: {path}")
+    if data and "picks" in data:
+        path = add_bracket_entry(data, data_dir=data_dir)
+        pick_count = len(data.get("picks", {}))
+        print(f"Done! {pick_count} picks saved to: {path}")
+        if pick_count != 63:
+            print(f"Warning: Expected 63 picks, got {pick_count}.")
     else:
         print("Failed to fetch bracket data.")
+        if data:
+            print(f"Response (no picks found): {str(data)[:300]}")
         sys.exit(1)
 
 
