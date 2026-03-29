@@ -6,8 +6,8 @@ import anthropic
 
 from src.browser import BrowserSession
 
-COMPUTER_USE_BETA = "computer-use-2025-11-24"
-TOOL_TYPE = "computer_20251124"
+COMPUTER_USE_BETA = "computer-use-2025-01-24"
+TOOL_TYPE = "computer_20250124"
 DEFAULT_MODEL = "claude-sonnet-4-20250514"
 MAX_ITERATIONS = 30
 
