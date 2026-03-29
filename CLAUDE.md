@@ -52,3 +52,18 @@ config.yaml           — All configuration
 - ESPN is a JS SPA — cannot be scraped with simple HTTP requests, must use browser
 - Agent loop has a 30-iteration safety cap (`MAX_ITERATIONS` in `agent.py`)
 - Set `browser.headless: false` in config.yaml to watch the browser during development
+
+## PR conventions
+
+Before opening a PR, do a self-assessment. Every PR description MUST include these 6 sections with real content (not just template placeholders):
+
+- **## Requirements** — What was asked for. Copy or summarize the original request.
+- **## Solution** — What was built. Describe the approach and key files changed.
+- **## Issues & Revisions** — Problems found during implementation, honest self-assessment, what changed from the first attempt to the final version. There are ALWAYS issues — be specific and honest.
+- **## Decisions** — Design choices, tradeoffs, alternatives you considered.
+- **## Testing** — What you tested, how, and results with numbers (e.g. "14 → 30 tests, all passing").
+- **## Scope** — Was there scope creep? Unmet requirements? What was deferred and why?
+
+CI hard-fails if any section is missing or empty. Thin sections (≤1 line) get an advisory comment. A PR template is provided — fill in every section before submitting.
+
+After opening a PR, subscribe to PR activity (`subscribe_pr_activity`) and wait for CI to complete. CI will post a review checklist comment based on which files you changed (e.g. "core/ changed — did you add tests?"). Review each checklist item and address any gaps before requesting human review.

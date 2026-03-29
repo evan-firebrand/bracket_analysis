@@ -5,11 +5,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from analyses import REQUIRED_ATTRS, discover_plugins, get_plugins_by_category
+from analyses import discover_plugins, get_plugins_by_category
 
 
 class TestPluginDiscovery:

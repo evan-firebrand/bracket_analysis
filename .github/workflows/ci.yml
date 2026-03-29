@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Lint
+        run: ruff check .
+      - name: Test
+        run: pytest
+
+  validate-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate PR description
+        id: validate
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          python scripts/validate_pr.py 2>warnings.txt
+          if [ -s warnings.txt ]; then
+            echo "warnings<<EOF" >> $GITHUB_OUTPUT
+            cat warnings.txt >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+      - name: Post advisory comment
+        if: always() && steps.validate.outputs.warnings
+        uses: actions/github-script@v7
+        env:
+          WARNINGS: ${{ steps.validate.outputs.warnings }}
+        with:
+          script: |
+            const warnings = process.env.WARNINGS;
+            if (warnings && warnings.trim()) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `### PR Description Review\n\n${warnings}\n\nThis is an advisory — the sections above could use more detail.`
+              });
+            }
+
+  review-checklist:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get changed files
+        id: files
+        run: |
+          echo "list<<EOF" >> $GITHUB_OUTPUT
+          git diff --name-only origin/main...HEAD >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Generate checklist
+        id: checklist
+        env:
+          CHANGED_FILES: ${{ steps.files.outputs.list }}
+        run: |
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          python scripts/review_checklist.py >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Post checklist comment
+        if: steps.checklist.outputs.body && !contains(steps.checklist.outputs.body, 'No review checklist')
+        uses: actions/github-script@v7
+        env:
+          CHECKLIST: ${{ steps.checklist.outputs.body }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: process.env.CHECKLIST
+            });

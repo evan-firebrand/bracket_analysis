@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """CLI: Fetch game results and odds from ESPN."""
 
-import sys
 import os
+import sys
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import yaml
 from dotenv import load_dotenv
+
 from src.browser import BrowserSession
-from src.fetch_results import fetch_results
 from src.fetch_odds import fetch_odds
-from src.storage import save_results, save_odds
+from src.fetch_results import fetch_results
+from src.storage import save_odds, save_results
 
 
 def main():

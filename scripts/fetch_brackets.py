@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """CLI: Fetch bracket picks from ESPN."""
 
-import sys
 import os
+import sys
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import yaml
 from dotenv import load_dotenv
+
 from src.browser import BrowserSession
 from src.fetch_bracket import fetch_espn_bracket
 from src.storage import add_bracket_entry
