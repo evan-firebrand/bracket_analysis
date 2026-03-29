@@ -1,0 +1,69 @@
+{
+  "entries": [
+    {
+      "player_name": "Alice",
+      "entry_name": "Alice's Chalk Bracket",
+      "picks": {
+        "r1_east_1v4": "duke",
+        "r1_east_2v3": "unc",
+        "r1_west_1v4": "houston",
+        "r1_west_2v3": "tennessee",
+        "r2_east_1": "duke",
+        "r2_west_1": "houston",
+        "championship": "duke"
+      }
+    },
+    {
+      "player_name": "Bob",
+      "entry_name": "Bob's Upset Special",
+      "picks": {
+        "r1_east_1v4": "purdue",
+        "r1_east_2v3": "gonzaga",
+        "r1_west_1v4": "arizona",
+        "r1_west_2v3": "alabama",
+        "r2_east_1": "gonzaga",
+        "r2_west_1": "alabama",
+        "championship": "alabama"
+      }
+    },
+    {
+      "player_name": "Charlie",
+      "entry_name": "Charlie's Smart Mix",
+      "picks": {
+        "r1_east_1v4": "duke",
+        "r1_east_2v3": "gonzaga",
+        "r1_west_1v4": "houston",
+        "r1_west_2v3": "alabama",
+        "r2_east_1": "duke",
+        "r2_west_1": "houston",
+        "championship": "houston"
+      }
+    },
+    {
+      "player_name": "Dave",
+      "entry_name": "Dave's Contrarian",
+      "picks": {
+        "r1_east_1v4": "duke",
+        "r1_east_2v3": "unc",
+        "r1_west_1v4": "houston",
+        "r1_west_2v3": "tennessee",
+        "r2_east_1": "duke",
+        "r2_west_1": "tennessee",
+        "championship": "tennessee"
+      }
+    },
+    {
+      "player_name": "Eve",
+      "entry_name": "Eve's Bold Bracket",
+      "picks": {
+        "r1_east_1v4": "purdue",
+        "r1_east_2v3": "gonzaga",
+        "r1_west_1v4": "arizona",
+        "r1_west_2v3": "alabama",
+        "r2_east_1": "gonzaga",
+        "r2_west_1": "arizona",
+        "championship": "gonzaga"
+      }
+    }
+  ]
+}
