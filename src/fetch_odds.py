@@ -1,15 +1,15 @@
-"""Fetch Vegas odds from ESPN using Claude computer use.
+"""Fetch Vegas odds from DraftKings using Claude computer use.
 
-Output format matches docs/DATA_CONTRACT.md:
-- Team-level round advancement probabilities (0.0 to 1.0)
-- NOT per-game spreads or moneylines
-- Only alive (non-eliminated) teams included
+Fetches per-game betting lines (spread, moneyline, over/under) for
+upcoming NCAA tournament matchups from DraftKings Sportsbook.
+
+Note: The data contract (docs/DATA_CONTRACT.md) specifies team-level
+advancement probabilities. Moneylines can be converted to implied
+probabilities downstream. This module fetches the raw lines.
 """
 
 from src.agent import extract_json_from_response, run_agent
 from src.browser import BrowserSession
-from src.models import odds_prompt_schema
-from src.storage import load_tournament
 
 
 def fetch_odds(
@@ -18,67 +18,62 @@ def fetch_odds(
     model: str = None,
     data_dir: str = "data",
 ) -> dict | None:
-    """Fetch team-level tournament advancement odds from ESPN BPI.
-
-    The odds represent each team's probability of reaching each round,
-    sourced from ESPN's BPI (Basketball Power Index) tournament projections.
+    """Fetch NCAA tournament game lines from DraftKings.
 
     Args:
-        odds_url: URL to ESPN BPI tournament forecast page.
+        odds_url: URL to DraftKings NCAAB sportsbook page.
         browser: An active BrowserSession.
         model: Optional model override.
-        data_dir: Path to data directory (to load tournament.json for context).
+        data_dir: Path to data directory.
 
     Returns:
-        Dict matching the odds.json schema, or None if extraction failed.
+        Dict with odds data, or None if extraction failed.
     """
-    schema = odds_prompt_schema()
 
-    # Load tournament structure if available for team slug context
-    tournament = load_tournament(data_dir)
-    tournament_context = ""
-    if tournament:
-        teams = tournament.get("teams", {})
-        team_list = ", ".join(f"{slug} ({info['name']})" for slug, info in list(teams.items())[:10])
-        tournament_context = f"""
-The tournament structure has already been defined. Here are some of the team slugs in use:
-{team_list}, ... etc.
-
-Use these EXACT team slugs in your output. Team slugs are lowercase with underscores.
-"""
-
-    prompt = f"""You are looking at ESPN's BPI (Basketball Power Index) tournament projections page.
-
-This page should show each team's probability of advancing to each round of the NCAA tournament.
-Look for a table or chart with columns like "Sweet 16 %", "Elite 8 %", "Final Four %", "Champion %".
+    prompt = """You are looking at the DraftKings Sportsbook NCAA basketball page.
 
 Your task:
-1. Find the tournament advancement probabilities table on this page.
-2. If you don't see it immediately, look for tabs like "Tournament", "Forecast", "BPI",
-   or "March Madness". You may need to click on a tab or link.
-3. If this page doesn't have tournament projections, try navigating to:
-   - ESPN's "Tournament Challenge" forecast page
-   - ESPN's BPI page with a "Tournament" filter
-4. For each team still alive, extract their advancement probabilities.
+1. Find the NCAA tournament game lines (upcoming tournament matchups).
+2. Look for March Madness, NCAA Tournament, or Elite 8 / Final Four games.
+3. You may need to scroll or click on a "March Madness" or "NCAA Tournament" tab/filter.
+4. For each upcoming tournament game, extract the betting lines.
 
-{tournament_context}
+For each game, record:
+- team1: first team name (use lowercase with underscores: duke, michigan_st, etc.)
+- team2: second team name
+- spread: point spread for team1 (negative means favored, e.g. -6.5)
+- moneyline_team1: American odds for team1 (e.g. -250)
+- moneyline_team2: American odds for team2 (e.g. +210)
+- over_under: total points line (e.g. 145.5)
+- game_date: date if visible (YYYY-MM-DD format)
 
-Return your results in this exact JSON format:
-{schema}
+Return as JSON:
+{
+    "last_updated": "<current ISO 8601 timestamp>",
+    "source": "DraftKings",
+    "games": [
+        {
+            "team1": "<team_slug>",
+            "team2": "<team_slug>",
+            "spread": <float or null>,
+            "moneyline_team1": <int or null>,
+            "moneyline_team2": <int or null>,
+            "over_under": <float or null>,
+            "game_date": "<YYYY-MM-DD or null>"
+        }
+    ]
+}
 
-CRITICAL rules:
-- Probabilities must be between 0.0 and 1.0 (NOT percentages — convert 15% to 0.15).
-- Probabilities are cumulative: r2 >= r3 >= r4 >= ff >= championship >= winner.
-- Only include teams still alive in the tournament (not eliminated teams).
-- Use team slugs (lowercase, underscores): duke, north_carolina, michigan_st, etc.
-- If exact round-by-round probabilities aren't available, extract what IS available
-  and set unavailable fields to null.
-- If you can only find championship odds (e.g. from a futures/odds page), that's still
-  useful — include it and set other round_probs to null.
-- Scroll as needed to see all teams.
-- Output ONLY valid JSON. No other text before or after.
-- If you absolutely cannot find tournament advancement probabilities after thorough
-  searching, return a JSON object with "error": "description of what you found instead".
+Team slug rules:
+- Lowercase, underscores for spaces
+- Examples: duke, uconn, arizona, purdue, illinois, iowa, michigan, tennessee
+
+CRITICAL:
+- Only include NCAA tournament games (Elite 8, Final Four, Championship).
+- If a field is not visible, use null.
+- Output ONLY valid JSON. No other text.
+- If you can't find tournament game lines, look for "Featured" or "Popular"
+  games which often highlight tournament matchups.
 """
 
     kwargs = {"task_prompt": prompt, "start_url": odds_url, "browser": browser}
@@ -91,11 +86,6 @@ CRITICAL rules:
     if data is None:
         print("Warning: Could not parse JSON from agent response.")
         print(f"Raw response (first 500 chars): {raw_response[:500]}")
-        return None
-
-    # Check for error response
-    if isinstance(data, dict) and "error" in data:
-        print(f"Agent could not find odds: {data['error']}")
         return None
 
     return data

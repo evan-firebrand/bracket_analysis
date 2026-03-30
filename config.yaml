@@ -14,7 +14,7 @@ results:
   url: "https://www.espn.com/mens-college-basketball/bracket"
 
 odds:
-  url: "https://www.espn.com/mens-college-basketball/bpi/_/view/tournament"
+  url: "https://sportsbook.draftkings.com/leagues/basketball/ncaab"
 
 schedule:
   results_times: ["08:00", "20:00"]

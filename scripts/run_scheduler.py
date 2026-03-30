@@ -45,9 +45,10 @@ def fetch_and_save():
         # Odds
         print("Fetching odds...")
         odds_data = fetch_odds(odds_url, browser, model, data_dir)
-        if odds_data and "teams" in odds_data:
+        if odds_data and ("teams" in odds_data or "games" in odds_data):
             save_odds(odds_data, data_dir)
-            print(f"  {len(odds_data['teams'])} teams' odds saved.")
+            count = len(odds_data.get('games', odds_data.get('teams', {})))
+            print(f"  {count} odds entries saved.")
         else:
             print("  Warning: odds fetch failed.")
 

@@ -60,10 +60,12 @@ def main():
             data_dir=data_dir,
         )
 
-        if odds_data and "teams" in odds_data:
+        if odds_data and ("teams" in odds_data or "games" in odds_data):
             path = save_odds(odds_data, data_dir=data_dir)
-            team_count = len(odds_data["teams"])
-            print(f"Odds saved ({team_count} teams): {path}")
+            if "games" in odds_data:
+                print(f"Odds saved ({len(odds_data['games'])} games): {path}")
+            else:
+                print(f"Odds saved ({len(odds_data['teams'])} teams): {path}")
         else:
             print("Warning: Failed to fetch odds.")
 
