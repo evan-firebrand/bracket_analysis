@@ -38,7 +38,7 @@ def main():
     teams = tournament.get("teams", {})
     slots = tournament.get("slots", [])
     slot_ids = {s["slot_id"] for s in slots}
-    slots_by_id = {s["slot_id"]: s for s in slots}
+    {s["slot_id"]: s for s in slots}
     print(f"  {len(teams)} teams, {len(slots)} game slots")
 
     # Validate tournament fields

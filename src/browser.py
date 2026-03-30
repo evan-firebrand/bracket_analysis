@@ -25,9 +25,14 @@ class BrowserSession:
                 "--no-sandbox",
             ],
         )
+        ua = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0.0.0 Safari/537.36"
+        )
         self._page = self._browser.new_page(
             viewport={"width": self._width, "height": self._height},
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            user_agent=ua,
         )
 
     def stop(self):

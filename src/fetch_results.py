@@ -8,11 +8,11 @@ Output format matches docs/DATA_CONTRACT.md:
 
 from src.agent import extract_json_from_response, run_agent
 from src.browser import BrowserSession
-from src.models import results_prompt_schema
-from src.storage import load_tournament
 
 # Import valid slot IDs for validation
 from src.fetch_bracket import VALID_SLOT_IDS
+from src.models import results_prompt_schema
+from src.storage import load_tournament
 
 
 def _validate_results(results: dict) -> dict:
