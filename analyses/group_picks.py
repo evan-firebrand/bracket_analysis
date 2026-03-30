@@ -17,7 +17,7 @@ from core.comparison import (
 )
 from core.context import AnalysisContext
 from core.narrative import describe_pick_popularity
-from core.scoring import POINTS_PER_ROUND, ROUND_NAMES
+from core.scoring import ROUND_NAMES
 
 TITLE = "The Group's Picks"
 DESCRIPTION = "See what everyone picked and who's going against the crowd"

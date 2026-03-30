@@ -6,7 +6,7 @@ Pure business logic — no Streamlit imports. Used by H2H and group picks plugin
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from core.models import PlayerEntry, Results, TournamentStructure
 from core.scoring import POINTS_PER_ROUND, get_alive_teams
