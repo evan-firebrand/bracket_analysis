@@ -630,6 +630,88 @@
         "over_under": 146.5
       }
     ],
+    "sweet_16": [
+      {
+        "slot_id": "r3_west_1",
+        "game_date": "2026-03-26",
+        "team1": "arizona",
+        "seed1": 1,
+        "team2": "arkansas",
+        "seed2": 4,
+        "spread": -7.5,
+        "over_under": 164.5
+      },
+      {
+        "slot_id": "r3_south_2",
+        "game_date": "2026-03-26",
+        "team1": "houston",
+        "seed1": 2,
+        "team2": "illinois",
+        "seed2": 3,
+        "spread": -2.5,
+        "over_under": 140.5
+      },
+      {
+        "slot_id": "r3_west_2",
+        "game_date": "2026-03-26",
+        "team1": "purdue",
+        "seed1": 2,
+        "team2": "texas",
+        "seed2": 11,
+        "spread": -7.5,
+        "over_under": 147.5
+      },
+      {
+        "slot_id": "r3_south_1",
+        "game_date": "2026-03-26",
+        "team1": "nebraska",
+        "seed1": 4,
+        "team2": "iowa",
+        "seed2": 9,
+        "spread": -1.5,
+        "over_under": 131.5
+      },
+      {
+        "slot_id": "r3_east_1",
+        "game_date": "2026-03-27",
+        "team1": "duke",
+        "seed1": 1,
+        "team2": "st_johns",
+        "seed2": 5,
+        "spread": -6.5,
+        "over_under": 140.5
+      },
+      {
+        "slot_id": "r3_midwest_1",
+        "game_date": "2026-03-27",
+        "team1": "michigan",
+        "seed1": 1,
+        "team2": "alabama",
+        "seed2": 4,
+        "spread": -8.5,
+        "over_under": 172.5
+      },
+      {
+        "slot_id": "r3_east_2",
+        "game_date": "2026-03-27",
+        "team1": "uconn",
+        "seed1": 2,
+        "team2": "michigan_st",
+        "seed2": 3,
+        "spread": -1.5,
+        "over_under": 135.5
+      },
+      {
+        "slot_id": "r3_midwest_2",
+        "game_date": "2026-03-27",
+        "team1": "iowa_st",
+        "seed1": 2,
+        "team2": "tennessee",
+        "seed2": 6,
+        "spread": -3.5,
+        "over_under": 139.5
+      }
+    ],
     "final_four": [
       {
         "slot_id": "r5_semi1",
