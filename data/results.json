@@ -290,6 +290,16 @@
       "winner": "tennessee",
       "loser": "iowa_st",
       "score": "76-62"
+    },
+    "r4_east_1": {
+      "winner": "uconn",
+      "loser": "duke",
+      "score": "73-72"
+    },
+    "r4_midwest_1": {
+      "winner": "michigan",
+      "loser": "tennessee",
+      "score": "95-62"
     }
   }
 }
