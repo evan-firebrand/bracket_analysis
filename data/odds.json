@@ -484,6 +484,152 @@
         "under_odds": -110
       }
     ],
+    "round_2": [
+      {
+        "slot_id": "r2_east_1",
+        "team1": "duke",
+        "seed1": 1,
+        "team2": "tcu",
+        "seed2": 9,
+        "spread": -12.5,
+        "over_under": 140.5
+      },
+      {
+        "slot_id": "r2_east_2",
+        "team1": "st_johns",
+        "seed1": 5,
+        "team2": "kansas",
+        "seed2": 4,
+        "spread": -3.5,
+        "over_under": 144.5
+      },
+      {
+        "slot_id": "r2_east_3",
+        "team1": "michigan_st",
+        "seed1": 3,
+        "team2": "louisville",
+        "seed2": 6,
+        "spread": -5.5,
+        "over_under": 150.5
+      },
+      {
+        "slot_id": "r2_east_4",
+        "team1": "uconn",
+        "seed1": 2,
+        "team2": "ucla",
+        "seed2": 7,
+        "spread": -4.5,
+        "over_under": 136.5
+      },
+      {
+        "slot_id": "r2_west_1",
+        "team1": "arizona",
+        "seed1": 1,
+        "team2": "utah_st",
+        "seed2": 9,
+        "spread": -11.5,
+        "over_under": 154.5
+      },
+      {
+        "slot_id": "r2_west_2",
+        "team1": "arkansas",
+        "seed1": 4,
+        "team2": "high_point",
+        "seed2": 12,
+        "spread": -11.5,
+        "over_under": 169.5
+      },
+      {
+        "slot_id": "r2_west_3",
+        "team1": "gonzaga",
+        "seed1": 3,
+        "team2": "texas",
+        "seed2": 11,
+        "spread": -6.5,
+        "over_under": 147.5
+      },
+      {
+        "slot_id": "r2_west_4",
+        "team1": "purdue",
+        "seed1": 2,
+        "team2": "miami_fl",
+        "seed2": 7,
+        "spread": -7.5,
+        "over_under": 146.5
+      },
+      {
+        "slot_id": "r2_south_1",
+        "team1": "florida",
+        "seed1": 1,
+        "team2": "iowa",
+        "seed2": 9,
+        "spread": -10.5,
+        "over_under": 145.5
+      },
+      {
+        "slot_id": "r2_south_2",
+        "team1": "vanderbilt",
+        "seed1": 5,
+        "team2": "nebraska",
+        "seed2": 4,
+        "spread": -1.5,
+        "over_under": 146.5
+      },
+      {
+        "slot_id": "r2_south_3",
+        "team1": "illinois",
+        "seed1": 3,
+        "team2": "vcu",
+        "seed2": 11,
+        "spread": -10.5,
+        "over_under": 151.5
+      },
+      {
+        "slot_id": "r2_south_4",
+        "team1": "houston",
+        "seed1": 2,
+        "team2": "texas_am",
+        "seed2": 10,
+        "spread": -11.5,
+        "over_under": 143.5
+      },
+      {
+        "slot_id": "r2_midwest_1",
+        "team1": "michigan",
+        "seed1": 1,
+        "team2": "saint_louis",
+        "seed2": 9,
+        "spread": -12.5,
+        "over_under": 161.5
+      },
+      {
+        "slot_id": "r2_midwest_2",
+        "team1": "texas_tech",
+        "seed1": 5,
+        "team2": "alabama",
+        "seed2": 4,
+        "spread": -1.5,
+        "over_under": 164.5
+      },
+      {
+        "slot_id": "r2_midwest_3",
+        "team1": "tennessee",
+        "seed1": 6,
+        "team2": "virginia",
+        "seed2": 3,
+        "spread": -1.5,
+        "over_under": 137.5
+      },
+      {
+        "slot_id": "r2_midwest_4",
+        "team1": "iowa_st",
+        "seed1": 2,
+        "team2": "kentucky",
+        "seed2": 7,
+        "spread": -5.5,
+        "over_under": 146.5
+      }
+    ],
     "final_four": [
       {
         "slot_id": "r5_semi1",
