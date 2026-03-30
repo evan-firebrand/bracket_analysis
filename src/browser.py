@@ -18,9 +18,16 @@ class BrowserSession:
 
     def start(self):
         self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(headless=self._headless)
+        self._browser = self._playwright.chromium.launch(
+            headless=self._headless,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--no-sandbox",
+            ],
+        )
         self._page = self._browser.new_page(
-            viewport={"width": self._width, "height": self._height}
+            viewport={"width": self._width, "height": self._height},
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         )
 
     def stop(self):
@@ -45,8 +52,19 @@ class BrowserSession:
             raise RuntimeError("Browser not started. Call start() first.")
         return self._page
 
-    def navigate(self, url: str):
-        self.page.goto(url, wait_until="domcontentloaded", timeout=30000)
+    def navigate(self, url: str, retries: int = 3):
+        import time
+        for attempt in range(retries):
+            try:
+                self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
+                return
+            except Exception as e:
+                if attempt < retries - 1:
+                    wait = 2 ** (attempt + 1)
+                    print(f"  Navigation failed (attempt {attempt + 1}), retrying in {wait}s: {e}")
+                    time.sleep(wait)
+                else:
+                    raise
 
     def screenshot(self) -> str:
         """Take a screenshot and return base64-encoded PNG."""
