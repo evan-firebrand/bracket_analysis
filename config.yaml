@@ -11,10 +11,10 @@ espn_group:
   target_member: "Rebecca"
 
 results:
-  url: "https://www.espn.com/mens-college-basketball/scoreboard/_/group/100"
+  url: "https://www.espn.com/mens-college-basketball/bracket"
 
 odds:
-  url: "https://www.espn.com/mens-college-basketball/scoreboard/_/group/100"
+  url: "https://www.espn.com/mens-college-basketball/bpi/_/view/tournament"
 
 schedule:
   results_times: ["08:00", "20:00"]

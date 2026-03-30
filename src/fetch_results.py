@@ -11,6 +11,27 @@ from src.browser import BrowserSession
 from src.models import results_prompt_schema
 from src.storage import load_tournament
 
+# Import valid slot IDs for validation
+from src.fetch_bracket import VALID_SLOT_IDS
+
+
+def _validate_results(results: dict) -> dict:
+    """Validate and clean results data."""
+    valid = set(VALID_SLOT_IDS)
+    cleaned = {}
+    invalid = []
+
+    for slot_id, result in results.items():
+        if slot_id in valid:
+            cleaned[slot_id] = result
+        else:
+            invalid.append(slot_id)
+
+    if invalid:
+        print(f"  Removed {len(invalid)} invalid slot IDs from results: {invalid[:5]}")
+
+    return cleaned
+
 
 def fetch_results(
     results_url: str,
@@ -18,10 +39,10 @@ def fetch_results(
     model: str = None,
     data_dir: str = "data",
 ) -> dict | None:
-    """Fetch current NCAA tournament game results from ESPN scoreboard.
+    """Fetch current NCAA tournament game results from ESPN bracket page.
 
     Args:
-        results_url: URL to the ESPN NCAA tournament scoreboard.
+        results_url: URL to the ESPN NCAA tournament bracket page.
         browser: An active BrowserSession.
         model: Optional model override.
         data_dir: Path to data directory (to load tournament.json for context).
@@ -31,7 +52,10 @@ def fetch_results(
     """
     schema = results_prompt_schema()
 
-    # Load tournament structure if available, to give Claude context on slot IDs
+    # Provide valid slot IDs for reference
+    slot_list = "\n".join(f"  {s}" for s in VALID_SLOT_IDS)
+
+    # Load tournament structure if available
     tournament = load_tournament(data_dir)
     tournament_context = ""
     if tournament:
@@ -51,25 +75,30 @@ Slot IDs follow this pattern:
 - Championship: championship
 """
 
-    prompt = f"""You are looking at the ESPN NCAA Men's Basketball Tournament scoreboard.
+    prompt = f"""You are looking at the ESPN NCAA Men's Basketball Tournament bracket page.
 
 Your task:
-1. Look at all the games shown on this page.
-2. Scroll through to find all completed tournament games across all rounds.
-3. For each completed game, extract the result.
+1. This page shows the full tournament bracket with completed game results (scores).
+2. Scroll through ALL four regions (East, West, South, Midwest) plus Final Four.
+3. For each game that shows a final score, extract the winner, loser, and score.
+4. Games that haven't been played yet will show team names without scores — SKIP those.
 
 {tournament_context}
+
+Team slug rules:
+- Lowercase, underscores for spaces, no special characters
+- Examples: duke, north_carolina, michigan_st, st_johns, miami_fl, iowa_st, texas_am
+
+Here are ALL valid slot IDs — use ONLY these:
+{slot_list}
 
 Return your results in this exact JSON format:
 {schema}
 
-Important:
-- ONLY include completed/final games. Do NOT include games that haven't happened yet.
-- Use team slugs (lowercase, underscores): duke, north_carolina, montana_st, etc.
-- Use slot IDs matching the bracket position of each game.
-- The "score" field should be a string like "78-65" (winner's score first).
-- Scroll down to see all games if they don't fit on one screen.
-- Navigate between rounds/days if needed to see all completed games.
+CRITICAL rules:
+- ONLY include games with final scores. Do NOT include upcoming/unplayed games.
+- The "score" field is "winner_score-loser_score" e.g. "78-65" (winner's score FIRST).
+- Scroll through the entire bracket to capture all completed games.
 - Output ONLY valid JSON. No other text before or after.
 """
 
@@ -84,5 +113,13 @@ Important:
         print("Warning: Could not parse JSON from agent response.")
         print(f"Raw response (first 500 chars): {raw_response[:500]}")
         return None
+
+    # Validate slot IDs
+    if "results" in data and isinstance(data["results"], dict):
+        original = len(data["results"])
+        data["results"] = _validate_results(data["results"])
+        cleaned = len(data["results"])
+        if original != cleaned:
+            print(f"  Cleaned results: {original} → {cleaned}")
 
     return data
