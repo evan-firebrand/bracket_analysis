@@ -163,12 +163,71 @@ def main():
         if "rounds" in odds_data:
             total = sum(len(g) for g in odds_data["rounds"].values())
             print(f"  {total} game lines across {len(odds_data['rounds'])} rounds")
+
+            # Cross-validate odds teams against tournament
+            odds_teams: set[str] = set()
+            for games in odds_data["rounds"].values():
+                for g in games:
+                    t1, t2 = g.get("team1"), g.get("team2")
+                    if t1:
+                        odds_teams.add(t1)
+                    if t2:
+                        odds_teams.add(t2)
+            missing_from_tournament = odds_teams - set(teams.keys())
+            if missing_from_tournament:
+                errors.append(
+                    f"odds.json: teams not in tournament: {missing_from_tournament}"
+                )
         elif "teams" in odds_data:
             print(f"  {len(odds_data['teams'])} team probabilities")
         elif "games" in odds_data:
             print(f"  {len(odds_data['games'])} game lines")
         else:
             errors.append("odds.json: no recognized data key")
+
+    # --- Score sanity checks ---
+    if results_data:
+        print("Running score sanity checks...")
+        results = results_data.get("results", {})
+        for slot_id, result in results.items():
+            score = result.get("score")
+            if score is None:
+                continue
+            parts = score.split("-")
+            if len(parts) != 2:
+                errors.append(f"results.json: slot '{slot_id}' bad score format '{score}'")
+                continue
+            try:
+                w_pts, l_pts = int(parts[0]), int(parts[1])
+            except ValueError:
+                errors.append(f"results.json: slot '{slot_id}' non-numeric score '{score}'")
+                continue
+            if w_pts <= l_pts:
+                errors.append(
+                    f"results.json: slot '{slot_id}' winner score ({w_pts}) "
+                    f"<= loser score ({l_pts})"
+                )
+            if w_pts > 200 or l_pts > 200:
+                errors.append(f"results.json: slot '{slot_id}' suspiciously high score '{score}'")
+            if w_pts < 30 or l_pts < 30:
+                errors.append(f"results.json: slot '{slot_id}' suspiciously low score '{score}'")
+
+        # Bracket progression: R2+ teams must come from feeder winners
+        slots_by_id = {s["slot_id"]: s for s in slots}
+        for slot_id, result in results.items():
+            slot = slots_by_id.get(slot_id)
+            if not slot or slot["round"] <= 1:
+                continue
+            feeders = [s["slot_id"] for s in slots if s.get("feeds_into") == slot_id]
+            feeder_winners = {results[f]["winner"] for f in feeders if f in results}
+            for role in ["winner", "loser"]:
+                team = result[role]
+                if feeder_winners and team not in feeder_winners:
+                    errors.append(
+                        f"results.json: slot '{slot_id}' {role} '{team}' "
+                        f"didn't win a feeder game (feeders won by {feeder_winners})"
+                    )
+        print("  Done")
 
     _report(errors)
 
