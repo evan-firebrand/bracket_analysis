@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-"""CLI: Fetch game results from ESPN."""
+"""CLI: Fetch betting odds from DraftKings."""
 
-import os
 import sys
+import os
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import yaml
 from dotenv import load_dotenv
-
 from src.browser import BrowserSession
-from src.fetch_results import fetch_results
-from src.storage import save_results
+from src.fetch_odds import fetch_odds
+from src.storage import save_odds
 
 
 def main():
@@ -25,30 +24,30 @@ def main():
     with open("config.yaml") as f:
         config = yaml.safe_load(f)
 
-    results_url = config["results"]["url"]
+    odds_url = config["odds"]["url"]
     headless = config["browser"]["headless"]
     width = config["browser"]["viewport_width"]
     height = config["browser"]["viewport_height"]
     model = config["anthropic"].get("model")
     data_dir = config.get("data_dir", "data")
 
-    print(f"Fetching game results from: {results_url}")
+    print(f"Fetching odds from: {odds_url}")
     print(f"Browser: headless={headless}, {width}x{height}")
 
     with BrowserSession(headless=headless, width=width, height=height) as browser:
-        results_data = fetch_results(
-            results_url=results_url,
+        odds_data = fetch_odds(
+            odds_url=odds_url,
             browser=browser,
             model=model,
             data_dir=data_dir,
         )
 
-    if results_data and "results" in results_data:
-        path = save_results(results_data, data_dir=data_dir)
-        game_count = len(results_data["results"])
-        print(f"Done! {game_count} completed games saved to: {path}")
+    if odds_data and ("games" in odds_data or "teams" in odds_data):
+        path = save_odds(odds_data, data_dir=data_dir)
+        count = len(odds_data.get("games", odds_data.get("teams", {})))
+        print(f"Done! {count} odds entries saved to: {path}")
     else:
-        print("Failed to fetch results data.")
+        print("Failed to fetch odds data.")
         sys.exit(1)
 
 
