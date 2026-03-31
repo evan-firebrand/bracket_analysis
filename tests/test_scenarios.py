@@ -21,7 +21,7 @@ from core.tournament import (
 
 @pytest.fixture
 def data_dir():
-    return Path(__file__).parent.parent / "data"
+    return Path(__file__).parent / "fixtures"
 
 
 @pytest.fixture
