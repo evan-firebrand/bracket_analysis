@@ -8,8 +8,6 @@ build/
 .env
 venv/
 .venv/
-data/
-data/content/pending.json
 
 # IDE
 .idea/
