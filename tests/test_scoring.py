@@ -111,9 +111,9 @@ class TestScoreEntry:
         charlie = _get_entry(entries, "Charlie")
         scored = score_entry(charlie, tournament, results)
 
-        # Charlie has: r2_west_1=houston (alive, 20pts), championship=houston (alive, 40pts)
-        # max_possible = 60 + 20 + 40 = 120
-        assert scored.max_possible == 60 + 20 + 40
+        # Charlie has: r2_west_1=houston (alive, 20pts), championship=houston (alive, 320pts)
+        # max_possible = 60 + 20 + 320 = 400
+        assert scored.max_possible == 60 + 20 + 320
 
 
 class TestBuildLeaderboard:
