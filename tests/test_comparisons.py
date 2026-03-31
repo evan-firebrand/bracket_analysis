@@ -70,8 +70,8 @@ class TestHeadToHead:
         dave = _get_entry(entries, "Dave")
         h2h = head_to_head(alice, dave, tournament, results)
 
-        # r2_west_1 = 20 pts, championship = 40 pts
-        assert h2h.pending_points == 60
+        # r2_west_1 = 20 pts, championship = 320 pts
+        assert h2h.pending_points == 340
 
     def test_both_wrong_category(self, tournament, results, entries):
         """When both players pick differently and both are wrong."""

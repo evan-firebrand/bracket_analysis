@@ -44,6 +44,15 @@ def load_tournament(path: str | Path) -> TournamentStructure:
         slots[slot.slot_id] = slot
         slot_order.append(slot.slot_id)
 
+    # Validate: championship slot must use round 6 (320 pts per ESPN scoring)
+    for sid, slot in slots.items():
+        if slot.feeds_into is None and slot.round != 6:
+            raise ValueError(
+                f"Slot '{sid}' is the championship (feeds_into=null) but has "
+                f"round={slot.round}. Per the data contract, the championship "
+                f"must be round=6. This causes incorrect point values."
+            )
+
     return TournamentStructure(
         year=data["year"],
         teams=teams,
