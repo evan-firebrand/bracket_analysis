@@ -155,7 +155,6 @@ def brute_force_scenarios(
     """
     rounds_of_slots = _get_remaining_slots_by_round(tournament, results)
     if not rounds_of_slots:
-        remaining_slots = get_remaining_slots(tournament, results)
         return _empty_results("brute_force", entries, [])
 
     # Generate all complete scenarios
