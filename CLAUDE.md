@@ -2,55 +2,54 @@
 
 ## What is this repo?
 
-Data collection layer for an NCAA tournament bracket analysis app. Uses Claude's computer use API to control a headless browser and scrape ESPN for bracket picks, game results, and betting odds.
+NCAA tournament bracket analysis app. Contains tournament data (teams, results, bracket picks, odds) and tools to analyze, score, and compare brackets.
 
 ## Key things to know
 
-- **Claude computer use beta**: `computer_20251124` with `client.beta.messages.create()` — see `src/agent.py`
-- **Browser**: Playwright Chromium (headless). Actions in `src/browser.py`, agent loop in `src/agent.py`
-- **ESPN group URL**: Configured in `config.yaml` under `espn_group.url`. Currently targets Rebecca's bracket.
 - **Data contract**: `docs/DATA_CONTRACT.md` defines exact schemas. All data uses team slugs and slot IDs.
-- **Data output**: Single JSON files — `data/tournament.json`, `data/results.json`, `data/odds.json`, `data/entries/player_brackets.json` (all gitignored)
+- **Data files are tracked in git**: `data/tournament.json`, `data/results.json`, `data/odds.json`, `data/entries/player_brackets.json`
+- **Data was manually collected**: Brackets from ESPN + NCAA screenshot extraction, results from bracket images, odds from DraftKings screenshots. No automated scraping.
+- **ESPN group URL**: Configured in `config.yaml` under `sources.espn_group`. Currently targets Rebecca's bracket.
 - **NCAA support**: Deferred. Only ESPN is implemented.
 
 ## How to run
 
 ```bash
-pip install -r requirements.txt && playwright install chromium
-# Set ANTHROPIC_API_KEY in .env
-python scripts/fetch_brackets.py     # fetch bracket picks
-python scripts/fetch_results.py      # fetch results + odds
-python scripts/run_scheduler.py      # start twice-daily scheduler
+pip install -r requirements.txt
+# Validate data integrity
+python scripts/validate_data.py
+# Verify scores via point tallies
+python scripts/verify_points.py
 ```
+
+## How to update data
+
+1. Edit the relevant JSON file in `data/`
+2. Run `python scripts/validate_data.py` to check integrity
+3. Run `python scripts/verify_points.py` to sanity-check scores
 
 ## How to extend
 
 To add a new data source or scraping target:
-1. Create `src/fetch_<thing>.py` following the pattern in `fetch_bracket.py`
+1. Create `src/fetch_<thing>.py` following the pattern in existing modules
 2. Write a detailed prompt telling Claude what to navigate and extract
-3. Call `run_agent(prompt, url, browser)` — it returns Claude's text response
-4. Use `extract_json_from_response()` to parse the JSON
-5. Save with `storage.save_*()` or add a new save function
+3. Save with `storage.save_*()` or add a new save function
 
 ## Project structure
 
 ```
-src/agent.py          — Core agent loop (reusable for any web task)
-src/browser.py        — Playwright browser + action execution
-src/fetch_bracket.py  — ESPN bracket extraction
-src/fetch_results.py  — Game results extraction
-src/fetch_odds.py     — Betting odds extraction
 src/models.py         — Prompt schema helpers (aligned with docs/DATA_CONTRACT.md)
 src/storage.py        — JSON file read/write
-scripts/              — CLI entry points + scheduler
+scripts/              — CLI tools (validation, verification)
 config.yaml           — All configuration
+data/                 — Tournament data (tracked in git)
+docs/DATA_CONTRACT.md — Data schema definitions
 ```
 
 ## Important constraints
 
-- Requires `ANTHROPIC_API_KEY` environment variable
-- ESPN is a JS SPA — cannot be scraped with simple HTTP requests, must use browser
-- Agent loop has a 30-iteration safety cap (`MAX_ITERATIONS` in `agent.py`)
+- Requires `ANTHROPIC_API_KEY` environment variable for any agent-based fetching
+- ESPN is a JS SPA — cannot be scraped with simple HTTP requests
 - Set `browser.headless: false` in config.yaml to watch the browser during development
 
 ## PR conventions

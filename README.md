@@ -1,131 +1,90 @@
 # Bracket Analysis
 
-NCAA Tournament bracket analysis tool that uses Claude's computer use API to control a headless browser for data collection.
+NCAA Tournament bracket analysis app. Scores bracket picks, compares players head-to-head, and runs simulations using Vegas odds.
 
-## What This Does
+## Data
 
-This is the **data collection layer** of a broader bracket analysis app. It handles three tasks:
+All tournament data lives in `data/` and is tracked in git. See `docs/DATA_CONTRACT.md` for exact schemas.
 
-1. **Bracket Fetching** — Navigates to an ESPN Tournament Challenge group page, finds a specific member's bracket (currently Rebecca), and extracts all 63 game picks as structured JSON.
+| File | Contents | Records |
+|------|----------|---------|
+| `data/tournament.json` | 64 teams, 63 slots, bracket tree | 64 teams |
+| `data/results.json` | Completed game results with scores | 60 games (through Elite 8) |
+| `data/odds.json` | DraftKings betting lines by round | 58 games (R1 + R32 + S16 + FF) |
+| `data/entries/player_brackets.json` | Player bracket picks | Evan (63 picks), Rebecca (63 picks via ESPN) |
 
-2. **Results Fetching** — Navigates to the ESPN NCAA tournament scoreboard and extracts completed game scores/results.
+### Data Sources
 
-3. **Odds Fetching** — Extracts team-level tournament advancement probabilities from ESPN (DraftKings/BPI).
+- **Brackets**: Rebecca's from ESPN Tournament Challenge group; Evan's from NCAA.com bracket screenshots
+- **Results**: Extracted from NCAA bracket images, QA'd region-by-region with zoomed images
+- **Odds**: DraftKings game lines (spreads, moneylines, totals) entered from screenshots
+- **Tournament structure**: Generated from results + odds data (teams, seeds, regions, bracket tree)
 
-All three use **Claude's computer use API** (`computer_20251124` beta) to control a Playwright Chromium browser. Claude sees screenshots, decides what to click/scroll/type, and extracts data visually.
+All data uses **team slugs** (lowercase, underscored: `duke`, `north_carolina`, `michigan_st`) and **slot IDs** (`r1_east_1v16`, `r2_east_1`, `r5_semi1`, `championship`).
 
 ## Architecture
 
 ```
-scripts/                    # CLI entry points (run these)
-  fetch_brackets.py         # Fetch bracket picks on demand
-  fetch_results.py          # Fetch game results + odds on demand
-  run_scheduler.py          # Twice-daily automated fetcher (8am/8pm ET)
+data/                       # Tournament data (tracked in git)
+  tournament.json           # Teams, seeds, regions, bracket tree
+  results.json              # Game results keyed by slot_id
+  odds.json                 # DraftKings lines by round
+  entries/
+    player_brackets.json    # All player bracket picks
 
-src/                        # Core modules
-  browser.py                # Playwright browser lifecycle + action execution
-  agent.py                  # Claude computer use agent loop
-  fetch_bracket.py          # ESPN bracket extraction logic + prompts
-  fetch_results.py          # Game results extraction logic + prompts
-  fetch_odds.py             # Odds extraction logic + prompts
-  models.py                 # Prompt schema helpers (aligned with data contract)
-  storage.py                # JSON file storage (read/write to data/)
+src/
+  models.py                 # Prompt schema helpers
+  storage.py                # JSON file read/write
+
+scripts/
+  validate_data.py          # Structural + score sanity validation
+  verify_points.py          # Team point tally cross-check
+  verify_results.py         # Web cross-reference against ESPN
 
 docs/
   DATA_CONTRACT.md          # Exact schemas for all data files
 
-data/                       # Output directory (gitignored)
-  tournament.json           # Tournament structure (teams, slots, bracket tree)
-  results.json              # Game results keyed by slot_id
-  odds.json                 # Team advancement probabilities
-  entries/
-    player_brackets.json    # All player bracket picks
-
-config.yaml                 # URLs, browser settings, schedule config
+config.yaml                 # Data directory and source URLs
 ```
 
-## How the Agent Loop Works
+## Validation
 
-`src/agent.py` implements the core loop:
+Three layers of data verification:
 
-1. Opens a Playwright browser and navigates to a URL
-2. Takes a screenshot and sends it to Claude via `client.beta.messages.create()` with the `computer_20251124` tool
-3. Claude responds with actions (click, scroll, type, etc.) or a final text answer
-4. If actions: execute them via Playwright, screenshot the result, send back to Claude
-5. Loop until Claude returns extracted data as text (JSON)
-6. Parse the JSON and save to `data/`
+```bash
+# Layer 1: Structural validation (slot IDs, team refs, bracket tree, score sanity)
+python scripts/validate_data.py
 
-Max 30 iterations per run as a safety cap.
+# Layer 2: Team point tallies for manual cross-reference
+python scripts/verify_points.py
+python scripts/verify_points.py --team duke
 
-## Data Contract
-
-See **`docs/DATA_CONTRACT.md`** for the complete data contract. Key points:
-
-- **Team slugs**: lowercase, underscored (e.g. `duke`, `north_carolina`, `montana_st`)
-- **Slot IDs**: `r1_east_1v16`, `r2_east_1`, `r5_semi1`, `championship`
-- **Single files**: `data/results.json` and `data/odds.json` are overwritten each fetch (not timestamped)
-- **Validation**: Run `python scripts/validate_data.py` to check schema compliance
-- All data must use consistent team slugs and slot IDs across files
-
-## Configuration
-
-**`config.yaml`** — All URLs, browser settings, and schedule config:
-- `espn_group.url` — ESPN Tournament Challenge group page
-- `espn_group.target_member` — Which member's bracket to fetch (default: "Rebecca")
-- `results.url` / `odds.url` — ESPN scoreboard URL
-- `browser.headless` — Set `false` to watch the browser during testing
-- `schedule.results_times` — Cron times for automated fetching
-
-**`.env`** — API key only:
-```
-ANTHROPIC_API_KEY=sk-ant-...
+# Layer 3: Web cross-reference against ESPN (requires Playwright)
+python scripts/verify_results.py
 ```
 
 ## Setup
 
 ```bash
 pip install -r requirements.txt
-playwright install chromium
-cp .env.example .env   # add your ANTHROPIC_API_KEY
+playwright install chromium   # only needed for verify_results.py
 ```
 
-## Usage
+## Updating Data
 
-```bash
-# One-off: fetch Rebecca's bracket from ESPN
-python scripts/fetch_brackets.py
-
-# One-off: fetch game results + odds
-python scripts/fetch_results.py
-
-# Start scheduler (runs at 8am + 8pm ET)
-python scripts/run_scheduler.py
-```
-
-## For Other Agents / Downstream Consumers
-
-- **Data lives in `data/`** as single JSON files per data type. Use `src.storage.load_results()`, `load_odds()`, `load_brackets()`, `load_tournament()` to read them.
-- **To add a new data source**: create a new `src/fetch_*.py` module following the pattern in `fetch_bracket.py`. Write a prompt, call `run_agent()`, parse the JSON.
-- **To change what data is extracted**: modify the prompts in `src/fetch_*.py` and update schemas in `src/models.py`.
-- **NCAA bracket support** is planned but deferred. The architecture supports multiple sources — just add a new fetch function.
-- **The agent loop (`src/agent.py`)** is source-agnostic. It takes any prompt + URL and returns Claude's text response. Reuse it for any web scraping task.
-
-## Dependencies
-
-- `anthropic` — Claude API SDK (computer use beta)
-- `playwright` — Headless Chromium browser
-- `pyyaml` — Config file parsing
-- `python-dotenv` — .env file loading
-- `apscheduler` — Cron-style scheduling
-- `Pillow` — Image processing (screenshot handling)
+1. Edit the relevant JSON file in `data/`
+2. Run `python scripts/validate_data.py` — must pass
+3. Run `python scripts/verify_points.py` — spot-check totals
+4. Commit and push
 
 ## Current Status
 
-- [x] ESPN bracket fetching (Rebecca's picks from group page)
-- [x] Game results fetching from ESPN scoreboard
-- [x] Odds fetching (DraftKings lines from ESPN)
-- [x] Twice-daily scheduler
-- [x] JSON file storage matching data contract
-- [x] Data contract defined in `docs/DATA_CONTRACT.md`
-- [ ] NCAA bracket support — deferred
-- [ ] Bracket scoring / comparison — not yet implemented (downstream)
+- [x] Tournament structure (64 teams, 63 slots)
+- [x] Game results through Elite 8 (60 games, QA verified)
+- [x] Betting odds R1 + R32 + S16 + FF (58 games)
+- [x] Evan's NCAA bracket picks (63 picks, tree-consistent)
+- [x] Rebecca's ESPN bracket picks (63 picks)
+- [x] Data validation + verification scripts
+- [ ] Elite 8 odds (4 games missing)
+- [ ] Final Four + Championship results (upcoming)
+- [ ] NCAA bracket support (deferred)
