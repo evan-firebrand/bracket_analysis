@@ -4,6 +4,10 @@ Two engines, same output format:
 - Brute-force: enumerates all 2^N outcomes (for <=15 remaining games)
 - Monte Carlo: simulates 100K outcomes weighted by odds (for >15 games)
 
+Both resolve games round-by-round, propagating winners through the bracket
+tree so that later-round games (including the championship) are properly
+simulated.
+
 Both return ScenarioResults.
 """
 
@@ -14,7 +18,7 @@ from dataclasses import dataclass, field
 
 from core.models import GameResult, PlayerEntry, Results, TournamentStructure
 from core.scoring import score_entry
-from core.tournament import get_remaining_games
+from core.tournament import get_remaining_slots
 
 
 @dataclass
@@ -47,6 +51,94 @@ class CriticalGame:
     max_swing: float = 0.0
 
 
+def _get_remaining_slots_by_round(
+    tournament: TournamentStructure,
+    results: Results,
+) -> list[list[str]]:
+    """Get remaining slots grouped and sorted by round.
+
+    Returns a list of lists: each inner list contains slot_ids for one round,
+    in ascending round order. This is needed to resolve games round-by-round
+    so that winners propagate correctly to later rounds.
+    """
+    remaining = get_remaining_slots(tournament, results)
+    rounds: dict[int, list[str]] = {}
+    for slot_id in remaining:
+        rnd = tournament.slots[slot_id].round
+        rounds.setdefault(rnd, []).append(slot_id)
+    return [rounds[r] for r in sorted(rounds)]
+
+
+def _resolve_participants(
+    tournament: TournamentStructure,
+    hypo_results: dict[str, GameResult],
+    slot_id: str,
+) -> tuple[str | None, str | None]:
+    """Determine who plays in a slot using hypothetical results.
+
+    Like tournament.get_participants_for_slot but works with a dict of
+    hypothetical GameResults rather than a Results object.
+    """
+    slot = tournament.slots[slot_id]
+    if slot.round == 1:
+        return (slot.top_team, slot.bottom_team)
+
+    feeders = tournament.get_feeder_slots(slot_id)
+    if len(feeders) != 2:
+        return (None, None)
+
+    r0 = hypo_results.get(feeders[0])
+    r1 = hypo_results.get(feeders[1])
+    return (r0.winner if r0 else None, r1.winner if r1 else None)
+
+
+def _simulate_tournament_brute_force(
+    tournament: TournamentStructure,
+    results: Results,
+    rounds_of_slots: list[list[str]],
+) -> list[dict[str, GameResult]]:
+    """Enumerate all possible outcomes by resolving games round-by-round.
+
+    For each round, we determine which games are actionable (both participants
+    known from previous round results), then enumerate all 2^K outcomes for
+    those K games. Games where a participant is unknown (e.g. feeder game had
+    an unknown participant itself) are skipped.
+
+    Returns a list of complete hypothetical result dicts (one per scenario).
+    """
+    # Start with one scenario: the current results
+    scenarios = [dict(results.results)]
+
+    for round_slots in rounds_of_slots:
+        next_scenarios = []
+        for hypo in scenarios:
+            # Determine actionable games in this round for this scenario
+            actionable = []
+            for slot_id in round_slots:
+                team_a, team_b = _resolve_participants(tournament, hypo, slot_id)
+                if team_a and team_b:
+                    actionable.append((slot_id, team_a, team_b))
+
+            if not actionable:
+                next_scenarios.append(hypo)
+                continue
+
+            # Enumerate all 2^K outcomes for this round's actionable games
+            n = len(actionable)
+            for bits in range(2 ** n):
+                new_hypo = dict(hypo)
+                for i, (slot_id, team_a, team_b) in enumerate(actionable):
+                    if (bits >> i) & 1:
+                        new_hypo[slot_id] = GameResult(winner=team_a, loser=team_b)
+                    else:
+                        new_hypo[slot_id] = GameResult(winner=team_b, loser=team_a)
+                next_scenarios.append(new_hypo)
+
+        scenarios = next_scenarios
+
+    return scenarios
+
+
 # --- Brute Force Engine ---
 
 
@@ -57,18 +149,28 @@ def brute_force_scenarios(
 ) -> ScenarioResults:
     """Enumerate all possible outcomes and score every player against each.
 
-    Only feasible for <=15 remaining games (2^15 = 32,768 scenarios).
+    Resolves games round-by-round so that later-round matchups (which depend
+    on earlier results) are properly simulated. Only feasible for <=15 total
+    remaining games (2^15 = 32,768 scenarios).
     """
-    remaining = get_remaining_games(tournament, results)
+    rounds_of_slots = _get_remaining_slots_by_round(tournament, results)
+    if not rounds_of_slots:
+        remaining_slots = get_remaining_slots(tournament, results)
+        return _empty_results("brute_force", entries, [])
 
-    # Filter to games where both participants are known
-    actionable = [g for g in remaining if g["team_a"] and g["team_b"]]
+    # Generate all complete scenarios
+    all_scenarios = _simulate_tournament_brute_force(
+        tournament, results, rounds_of_slots
+    )
+    total = len(all_scenarios)
 
-    if not actionable:
-        return _empty_results("brute_force", entries, remaining)
+    if total == 0:
+        return _empty_results("brute_force", entries, [])
 
-    n_games = len(actionable)
-    total = 2 ** n_games
+    # Collect all slots that were actually simulated (for critical game tracking)
+    all_remaining = []
+    for round_slots in rounds_of_slots:
+        all_remaining.extend(round_slots)
 
     # Initialize counters
     win_counts: dict[str, int] = {e.player_name: 0 for e in entries}
@@ -77,26 +179,10 @@ def brute_force_scenarios(
     }
 
     # For critical game analysis: track wins per player when each game goes each way
-    # game_index -> {team_a_slug: {player: win_count}, team_b_slug: {player: win_count}}
-    game_win_splits: dict[int, dict[str, dict[str, int]]] = {}
-    for i, game in enumerate(actionable):
-        game_win_splits[i] = {
-            game["team_a"]: {e.player_name: 0 for e in entries},
-            game["team_b"]: {e.player_name: 0 for e in entries},
-        }
+    # slot_id -> {team_slug: {player: win_count}}
+    game_win_splits: dict[str, dict[str, dict[str, int]]] = {}
 
-    # Enumerate all 2^N combinations
-    for bits in range(total):
-        # Build hypothetical results
-        hypo_results = dict(results.results)
-        outcome_winners = []
-
-        for i, game in enumerate(actionable):
-            winner = game["team_a"] if (bits >> i) & 1 else game["team_b"]
-            loser = game["team_b"] if (bits >> i) & 1 else game["team_a"]
-            hypo_results[game["slot_id"]] = GameResult(winner=winner, loser=loser)
-            outcome_winners.append(winner)
-
+    for hypo_results in all_scenarios:
         hypo = Results(last_updated="", results=hypo_results)
 
         # Score all entries
@@ -117,20 +203,41 @@ def brute_force_scenarios(
         win_counts[winner_name] += 1
 
         # Record for critical game splits
-        for i, game in enumerate(actionable):
-            game_winner = game["team_a"] if (bits >> i) & 1 else game["team_b"]
-            game_win_splits[i][game_winner][winner_name] += 1
+        for slot_id in all_remaining:
+            result = hypo_results.get(slot_id)
+            if not result:
+                continue
+            if slot_id not in game_win_splits:
+                game_win_splits[slot_id] = {}
+            team = result.winner
+            if team not in game_win_splits[slot_id]:
+                game_win_splits[slot_id][team] = {e.player_name: 0 for e in entries}
+            game_win_splits[slot_id][team][winner_name] += 1
 
-    # Build critical games
-    critical = _build_critical_games(actionable, game_win_splits, total, entries)
+    # Build critical games from splits
+    critical = _build_critical_games_from_splits(
+        game_win_splits, total, entries, tournament
+    )
 
     # Elimination
     eliminated = {name: count == 0 for name, count in win_counts.items()}
 
+    # Build remaining games info for the result
+    remaining_games = []
+    for slot_id in all_remaining:
+        slot = tournament.slots[slot_id]
+        remaining_games.append({
+            "slot_id": slot_id,
+            "round": slot.round,
+            "region": slot.region,
+            "team_a": None,
+            "team_b": None,
+        })
+
     return ScenarioResults(
         engine="brute_force",
         total_scenarios=total,
-        remaining_games=remaining,
+        remaining_games=remaining_games,
         win_counts=win_counts,
         finish_distributions=finish_dist,
         is_eliminated=eliminated,
@@ -157,6 +264,9 @@ def monte_carlo_scenarios(
 ) -> ScenarioResults:
     """Run Monte Carlo simulations weighted by odds or seed-based rates.
 
+    Resolves games round-by-round so that later-round matchups (which depend
+    on earlier results) are properly simulated.
+
     Args:
         odds: Optional odds data. If None, uses seed-based historical rates.
         n_simulations: Number of simulations to run.
@@ -165,42 +275,42 @@ def monte_carlo_scenarios(
     if seed is not None:
         random.seed(seed)
 
-    remaining = get_remaining_games(tournament, results)
-    actionable = [g for g in remaining if g["team_a"] and g["team_b"]]
+    rounds_of_slots = _get_remaining_slots_by_round(tournament, results)
+    if not rounds_of_slots:
+        return _empty_results("monte_carlo", entries, [])
 
-    if not actionable:
-        return _empty_results("monte_carlo", entries, remaining)
-
-    # Pre-compute win probabilities for each game
-    game_probs = []
-    for game in actionable:
-        prob_a = _get_win_probability(
-            game["team_a"], game["team_b"], tournament, odds
-        )
-        game_probs.append(prob_a)
+    all_remaining = []
+    for round_slots in rounds_of_slots:
+        all_remaining.extend(round_slots)
 
     # Initialize counters
     win_counts: dict[str, int] = {e.player_name: 0 for e in entries}
     finish_dist: dict[str, dict[int, int]] = {
         e.player_name: {} for e in entries
     }
-    game_win_splits: dict[int, dict[str, dict[str, int]]] = {}
-    for i, game in enumerate(actionable):
-        game_win_splits[i] = {
-            game["team_a"]: {e.player_name: 0 for e in entries},
-            game["team_b"]: {e.player_name: 0 for e in entries},
-        }
+    game_win_splits: dict[str, dict[str, dict[str, int]]] = {}
 
     # Run simulations
     for _ in range(n_simulations):
         hypo_results = dict(results.results)
 
-        for i, game in enumerate(actionable):
-            if random.random() < game_probs[i]:
-                winner, loser = game["team_a"], game["team_b"]
-            else:
-                winner, loser = game["team_b"], game["team_a"]
-            hypo_results[game["slot_id"]] = GameResult(winner=winner, loser=loser)
+        # Resolve games round-by-round, propagating winners
+        for round_slots in rounds_of_slots:
+            for slot_id in round_slots:
+                team_a, team_b = _resolve_participants(
+                    tournament, hypo_results, slot_id
+                )
+                if not team_a or not team_b:
+                    continue
+
+                prob_a = _get_win_probability(
+                    team_a, team_b, tournament, odds
+                )
+                if random.random() < prob_a:
+                    winner, loser = team_a, team_b
+                else:
+                    winner, loser = team_b, team_a
+                hypo_results[slot_id] = GameResult(winner=winner, loser=loser)
 
         hypo = Results(last_updated="", results=hypo_results)
 
@@ -217,19 +327,38 @@ def monte_carlo_scenarios(
         winner_name = scores[0][0]
         win_counts[winner_name] += 1
 
-        for i, game in enumerate(actionable):
-            game_winner = hypo_results[game["slot_id"]].winner
-            game_win_splits[i][game_winner][winner_name] += 1
+        # Record for critical game splits
+        for slot_id in all_remaining:
+            result = hypo_results.get(slot_id)
+            if not result:
+                continue
+            if slot_id not in game_win_splits:
+                game_win_splits[slot_id] = {}
+            team = result.winner
+            if team not in game_win_splits[slot_id]:
+                game_win_splits[slot_id][team] = {e.player_name: 0 for e in entries}
+            game_win_splits[slot_id][team][winner_name] += 1
 
-    critical = _build_critical_games(
-        actionable, game_win_splits, n_simulations, entries
+    critical = _build_critical_games_from_splits(
+        game_win_splits, n_simulations, entries, tournament
     )
     eliminated = {name: count == 0 for name, count in win_counts.items()}
+
+    remaining_games = []
+    for slot_id in all_remaining:
+        slot = tournament.slots[slot_id]
+        remaining_games.append({
+            "slot_id": slot_id,
+            "round": slot.round,
+            "region": slot.region,
+            "team_a": None,
+            "team_b": None,
+        })
 
     return ScenarioResults(
         engine="monte_carlo",
         total_scenarios=n_simulations,
-        remaining_games=remaining,
+        remaining_games=remaining_games,
         win_counts=win_counts,
         finish_distributions=finish_dist,
         is_eliminated=eliminated,
@@ -248,10 +377,9 @@ def run_scenarios(
     brute_force_threshold: int = 15,
 ) -> ScenarioResults:
     """Auto-select engine based on remaining game count."""
-    remaining = get_remaining_games(tournament, results)
-    actionable = [g for g in remaining if g["team_a"] and g["team_b"]]
+    remaining = get_remaining_slots(tournament, results)
 
-    if len(actionable) <= brute_force_threshold:
+    if len(remaining) <= brute_force_threshold:
         return brute_force_scenarios(entries, tournament, results)
     else:
         return monte_carlo_scenarios(entries, tournament, results, odds=odds)
@@ -277,15 +405,33 @@ def _get_win_probability(
 ) -> float:
     """Get probability that team_a beats team_b.
 
-    Uses odds data if available, otherwise falls back to seed-based rates.
+    Uses round advancement odds if available (comparing each team's probability
+    of reaching the next round), otherwise falls back to seed-based rates.
     """
     if odds and "teams" in odds:
-        # Try to derive from championship probabilities as a rough proxy
-        prob_a = odds["teams"].get(team_a, {}).get("championship", 0.5)
-        prob_b = odds["teams"].get(team_b, {}).get("championship", 0.5)
-        total = prob_a + prob_b
-        if total > 0:
-            return prob_a / total
+        odds_a = odds["teams"].get(team_a, {})
+        odds_b = odds["teams"].get(team_b, {})
+
+        # Use round advancement probabilities to derive matchup odds.
+        # For each team, look at the probability of advancing to the NEXT round
+        # (which implies winning this game). Compare the two to get relative
+        # probability. Try round_probs keys in order of specificity.
+        rp_a = odds_a.get("round_probs", {})
+        rp_b = odds_b.get("round_probs", {})
+
+        # Try to find a useful round probability for both teams
+        # Use the most advanced round where both teams have data
+        for key in ("winner", "championship", "ff", "r4", "r3", "r2"):
+            pa = rp_a.get(key)
+            pb = rp_b.get(key)
+            if pa is not None and pb is not None and (pa + pb) > 0:
+                return pa / (pa + pb)
+
+        # Fallback to top-level championship probability
+        pa = odds_a.get("championship")
+        pb = odds_b.get("championship")
+        if pa is not None and pb is not None and (pa + pb) > 0:
+            return pa / (pa + pb)
 
     # Fallback: seed-based historical win rates
     t_a = tournament.teams.get(team_a)
@@ -300,20 +446,23 @@ def _get_win_probability(
     return 0.5  # true coin flip if nothing else
 
 
-def _build_critical_games(
-    actionable: list[dict],
-    game_win_splits: dict[int, dict[str, dict[str, int]]],
+def _build_critical_games_from_splits(
+    game_win_splits: dict[str, dict[str, dict[str, int]]],
     total_scenarios: int,
     entries: list[PlayerEntry],
+    tournament: TournamentStructure,
 ) -> list[CriticalGame]:
-    """Build CriticalGame objects from win split data."""
+    """Build CriticalGame objects from slot-id-keyed win split data."""
     critical = []
 
-    for i, game in enumerate(actionable):
-        splits = game_win_splits[i]
-        team_a, team_b = game["team_a"], game["team_b"]
+    for slot_id, splits in game_win_splits.items():
+        teams = list(splits.keys())
+        if len(teams) != 2:
+            continue
 
-        # Count scenarios where each team won
+        team_a, team_b = teams[0], teams[1]
+
+        # Count scenarios where each team won this game
         a_total = sum(splits[team_a].values())
         b_total = sum(splits[team_b].values())
 
@@ -322,15 +471,15 @@ def _build_critical_games(
 
         for entry in entries:
             name = entry.player_name
-            win_if_a = splits[team_a][name] / a_total if a_total > 0 else 0
-            win_if_b = splits[team_b][name] / b_total if b_total > 0 else 0
+            win_if_a = splits[team_a].get(name, 0) / a_total if a_total > 0 else 0
+            win_if_b = splits[team_b].get(name, 0) / b_total if b_total > 0 else 0
             swings[name] = (win_if_a, win_if_b)
             swing = abs(win_if_a - win_if_b)
             if swing > max_swing:
                 max_swing = swing
 
         critical.append(CriticalGame(
-            slot_id=game["slot_id"],
+            slot_id=slot_id,
             team_a=team_a,
             team_b=team_b,
             swings=swings,

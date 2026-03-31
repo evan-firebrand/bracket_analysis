@@ -83,7 +83,7 @@ def _render_win_probabilities(ctx, sr):
 
     # Table
     df = pd.DataFrame(rows)
-    df["Win %"] = df["Win %"].apply(lambda x: f"{x:.1%}")
+    df["Win %"] = df["Win %"].apply(lambda x: "0%" if x == 0 else f"{x:.1%}")
     st.dataframe(
         df[["Player", "Win %", "Scenarios Won", "Current Pts", "Status"]],
         use_container_width=True,

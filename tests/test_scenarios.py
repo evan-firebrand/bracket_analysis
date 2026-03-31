@@ -101,15 +101,14 @@ class TestRemainingGames:
 
 class TestBruteForce:
     def test_total_scenarios(self, entries, tournament, results):
-        """With 2 remaining games (1 actionable), should have correct scenario count."""
+        """With 2 remaining games resolved round-by-round, should have 4 scenarios.
+
+        Round 2: r2_west_1 (houston vs alabama) -> 2 outcomes
+        Round 3: championship (duke vs r2_west_1 winner) -> 2 outcomes each
+        Total: 2 * 2 = 4 scenarios
+        """
         sr = brute_force_scenarios(entries, tournament, results)
-        # r2_west_1 is actionable (houston vs alabama)
-        # championship depends on r2_west_1, so only 1 is actionable at first
-        # Actually both teams are known for r2_west_1 (houston, alabama)
-        # But championship needs r2_west_1 winner + duke — r2_west_1 not played yet
-        # So championship's team_b is None -> not actionable
-        # Only r2_west_1 is actionable -> 2^1 = 2 scenarios
-        assert sr.total_scenarios == 2
+        assert sr.total_scenarios == 4
 
     def test_all_players_have_win_counts(self, entries, tournament, results):
         sr = brute_force_scenarios(entries, tournament, results)
@@ -119,28 +118,38 @@ class TestBruteForce:
         sr = brute_force_scenarios(entries, tournament, results)
         assert sum(sr.win_counts.values()) == sr.total_scenarios
 
-    def test_charlie_favored(self, entries, tournament, results):
-        """Charlie has 60 pts and picked Houston for r2_west_1.
-        If Houston wins: Charlie gets +20 = 80 pts.
-        If Alabama wins: Charlie stays at 60 but Bob gets +20 = 40.
-        Charlie leads in both scenarios.
+    def test_championship_matters(self, entries, tournament, results):
+        """With championship included, Alice wins when Duke wins the championship.
+
+        Scenario breakdown (4 total):
+        - Houston wins r2, Duke wins champ: Alice=100, Charlie=80 -> Alice wins
+        - Houston wins r2, Houston wins champ: Charlie=120, Alice=60 -> Charlie wins
+        - Alabama wins r2, Duke wins champ: Alice=80, Charlie=60 -> Alice wins
+        - Alabama wins r2, Alabama wins champ: Bob=80, Charlie=60 -> Bob wins
+
+        So: Alice=2, Charlie=1, Bob=1
         """
         sr = brute_force_scenarios(entries, tournament, results)
-        assert sr.win_counts["Charlie"] == sr.total_scenarios  # Charlie wins all
+        assert sr.win_counts["Alice"] == 2
+        assert sr.win_counts["Charlie"] == 1
+        assert sr.win_counts["Bob"] == 1
 
     def test_elimination_detected(self, entries, tournament, results):
         sr = brute_force_scenarios(entries, tournament, results)
-        # If Charlie wins every scenario, everyone else is eliminated
-        for name, eliminated in sr.is_eliminated.items():
-            if name == "Charlie":
-                assert not eliminated
-            else:
-                assert eliminated
+        # Dave and Eve can't win any scenario
+        assert sr.is_eliminated["Dave"]
+        assert sr.is_eliminated["Eve"]
+        # Alice, Charlie, Bob each win at least one scenario
+        assert not sr.is_eliminated["Alice"]
+        assert not sr.is_eliminated["Charlie"]
+        assert not sr.is_eliminated["Bob"]
 
     def test_has_critical_games(self, entries, tournament, results):
         sr = brute_force_scenarios(entries, tournament, results)
-        # Should have at least 1 critical game
+        # r2_west_1 has a fixed matchup so it appears as a critical game.
+        # Championship matchup varies by scenario so it may not appear.
         assert len(sr.critical_games) >= 1
+        assert sr.critical_games[0].slot_id == "r2_west_1"
 
 
 # --- Monte Carlo tests ---
