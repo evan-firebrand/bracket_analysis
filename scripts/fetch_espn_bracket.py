@@ -91,8 +91,8 @@ def fetch_bracket(group_url: str, target_member: str, headless: bool = True) -> 
         # Save debug output
         debug_dir = Path("data/debug")
         debug_dir.mkdir(parents=True, exist_ok=True)
-        (debug_dir / "bracket_text.txt").write_text(page_text)
-        (debug_dir / "bracket_page.html").write_text(page_html)
+        (debug_dir / "bracket_text.txt").write_text(page_text, encoding="utf-8")
+        (debug_dir / "bracket_page.html").write_text(page_html, encoding="utf-8")
         page.screenshot(path=str(debug_dir / "bracket_screenshot.png"))
         print("  Saved debug output to data/debug/")
 

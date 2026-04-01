@@ -12,6 +12,8 @@ NCAA tournament bracket analysis app. Contains tournament data (teams, results, 
 - **ESPN group URL**: Configured in `config.yaml` under `sources.espn_group`. Currently targets Rebecca's bracket.
 - **NCAA support**: Deferred. Only ESPN is implemented.
 
+- **DATA INTEGRITY IS CRITICAL**: Never use fake data or make guesses. All data must be verified against official sources\*\*
+
 ## How to run
 
 ```bash
@@ -31,6 +33,7 @@ python scripts/verify_points.py
 ## How to extend
 
 To add a new data source or scraping target:
+
 1. Create `src/fetch_<thing>.py` following the pattern in existing modules
 2. Write a detailed prompt telling Claude what to navigate and extract
 3. Save with `storage.save_*()` or add a new save function
