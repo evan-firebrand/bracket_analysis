@@ -23,7 +23,7 @@ from core.loader import load_entries, load_results, load_tournament
 
 @pytest.fixture
 def data_dir():
-    return Path(__file__).parent.parent / "data"
+    return Path(__file__).parent / "fixtures"
 
 
 @pytest.fixture
