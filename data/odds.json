@@ -1,6 +1,40 @@
 {
-  "last_updated": "2026-03-30T00:00:00Z",
+  "last_updated": "2026-04-01T00:00:00Z",
   "source": "DraftKings",
+  "teams": {
+    "illinois": {
+      "championship": 0.27,
+      "round_probs": {
+        "ff": 1.0,
+        "championship": 0.543,
+        "winner": 0.27
+      }
+    },
+    "uconn": {
+      "championship": 0.23,
+      "round_probs": {
+        "ff": 1.0,
+        "championship": 0.457,
+        "winner": 0.23
+      }
+    },
+    "michigan": {
+      "championship": 0.27,
+      "round_probs": {
+        "ff": 1.0,
+        "championship": 0.532,
+        "winner": 0.27
+      }
+    },
+    "arizona": {
+      "championship": 0.23,
+      "round_probs": {
+        "ff": 1.0,
+        "championship": 0.468,
+        "winner": 0.23
+      }
+    }
+  },
   "rounds": {
     "round_1": [
       {
@@ -725,8 +759,8 @@
         "moneyline_team1": -130,
         "moneyline_team2": 110,
         "over_under": 139.5,
-        "over_odds": -112,
-        "under_odds": -108,
+        "over_odds": -108,
+        "under_odds": -112,
         "game_date": "2026-04-04",
         "game_time": "17:09 ET"
       },
@@ -739,8 +773,8 @@
         "spread": -1.5,
         "spread_odds_team1": -108,
         "spread_odds_team2": -112,
-        "moneyline_team1": -122,
-        "moneyline_team2": 102,
+        "moneyline_team1": -125,
+        "moneyline_team2": 105,
         "over_under": 157.5,
         "over_odds": -110,
         "under_odds": -110,
