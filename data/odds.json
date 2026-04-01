@@ -712,6 +712,45 @@
         "over_under": 139.5
       }
     ],
+    "elite_8": [
+      {
+        "slot_id": "r4_east_1",
+        "team1": "duke",
+        "seed1": 1,
+        "team2": "uconn",
+        "seed2": 2,
+        "spread": -5.5,
+        "moneyline_team2": 205,
+        "over_under": 134.5
+      },
+      {
+        "slot_id": "r4_south_1",
+        "team1": "illinois",
+        "seed1": 3,
+        "team2": "iowa",
+        "seed2": 9,
+        "spread": -6.5,
+        "over_under": 138.5
+      },
+      {
+        "slot_id": "r4_midwest_1",
+        "team1": "michigan",
+        "seed1": 1,
+        "team2": "tennessee",
+        "seed2": 6,
+        "spread": -7.5,
+        "over_under": 146.5
+      },
+      {
+        "slot_id": "r4_west_1",
+        "team1": "arizona",
+        "seed1": 1,
+        "team2": "purdue",
+        "seed2": 2,
+        "spread": -5.5,
+        "over_under": 152.5
+      }
+    ],
     "final_four": [
       {
         "slot_id": "r5_semi1",
@@ -719,14 +758,14 @@
         "seed1": 3,
         "team2": "uconn",
         "seed2": 2,
-        "spread": -1.5,
-        "spread_odds_team1": -120,
-        "spread_odds_team2": 100,
+        "spread": -2.5,
+        "spread_odds_team1": -110,
+        "spread_odds_team2": -110,
         "moneyline_team1": -130,
         "moneyline_team2": 110,
         "over_under": 139.5,
-        "over_odds": -112,
-        "under_odds": -108,
+        "over_odds": -110,
+        "under_odds": -110,
         "game_date": "2026-04-04",
         "game_time": "17:09 ET"
       },

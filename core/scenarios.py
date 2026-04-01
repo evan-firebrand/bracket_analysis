@@ -401,36 +401,59 @@ def _get_win_probability(
     team_b: str,
     tournament: TournamentStructure,
     odds: dict | None,
+    slot_id: str | None = None,
 ) -> float:
     """Get probability that team_a beats team_b.
 
-    Uses round advancement odds if available (comparing each team's probability
-    of reaching the next round), otherwise falls back to seed-based rates.
+    Priority order:
+    1. Per-game moneyline from odds["rounds"] (most accurate)
+    2. Per-game spread from odds["rounds"] (converted via formula)
+    3. Per-team round advancement odds from odds["teams"] (if available)
+    4. Seed-based historical win rates (fallback)
+    5. 0.5 coin flip (last resort)
     """
-    if odds and "teams" in odds:
-        odds_a = odds["teams"].get(team_a, {})
-        odds_b = odds["teams"].get(team_b, {})
+    if odds:
+        # Try per-game format: odds["rounds"][round_name][game]
+        if "rounds" in odds:
+            game_odds = _find_game_odds(odds, team_a, team_b, slot_id)
+            if game_odds:
+                # Try moneyline first (most direct)
+                ml_a = game_odds.get("moneyline_team1")
+                ml_b = game_odds.get("moneyline_team2")
+                if ml_a is not None and ml_b is not None:
+                    prob = _moneyline_to_probability(
+                        ml_a, ml_b, game_odds.get("team1"), team_a
+                    )
+                    if prob is not None:
+                        return prob
 
-        # Use round advancement probabilities to derive matchup odds.
-        # For each team, look at the probability of advancing to the NEXT round
-        # (which implies winning this game). Compare the two to get relative
-        # probability. Try round_probs keys in order of specificity.
-        rp_a = odds_a.get("round_probs", {})
-        rp_b = odds_b.get("round_probs", {})
+                # Try spread (convert to probability)
+                spread = game_odds.get("spread")
+                if spread is not None:
+                    prob = _spread_to_probability(
+                        spread, game_odds.get("team1"), team_a
+                    )
+                    if prob is not None:
+                        return prob
 
-        # Try to find a useful round probability for both teams
-        # Use the most advanced round where both teams have data
-        for key in ("winner", "championship", "ff", "r4", "r3", "r2"):
-            pa = rp_a.get(key)
-            pb = rp_b.get(key)
+        # Try per-team format: odds["teams"][slug]["round_probs"]
+        if "teams" in odds:
+            odds_a = odds["teams"].get(team_a, {})
+            odds_b = odds["teams"].get(team_b, {})
+
+            rp_a = odds_a.get("round_probs", {})
+            rp_b = odds_b.get("round_probs", {})
+
+            for key in ("winner", "championship", "ff", "r4", "r3", "r2"):
+                pa = rp_a.get(key)
+                pb = rp_b.get(key)
+                if pa is not None and pb is not None and (pa + pb) > 0:
+                    return pa / (pa + pb)
+
+            pa = odds_a.get("championship")
+            pb = odds_b.get("championship")
             if pa is not None and pb is not None and (pa + pb) > 0:
                 return pa / (pa + pb)
-
-        # Fallback to top-level championship probability
-        pa = odds_a.get("championship")
-        pb = odds_b.get("championship")
-        if pa is not None and pb is not None and (pa + pb) > 0:
-            return pa / (pa + pb)
 
     # Fallback: seed-based historical win rates
     t_a = tournament.teams.get(team_a)
@@ -443,6 +466,72 @@ def _get_win_probability(
             return rate if t_a.seed <= t_b.seed else 1 - rate
 
     return 0.5  # true coin flip if nothing else
+
+
+def _find_game_odds(
+    odds: dict, team_a: str, team_b: str, slot_id: str | None
+) -> dict | None:
+    """Find the odds entry for a specific game from the per-game format."""
+    for _round_name, games in odds.get("rounds", {}).items():
+        for game in games:
+            # Match by slot_id if available
+            if slot_id and game.get("slot_id") == slot_id:
+                return game
+            # Match by team names
+            t1, t2 = game.get("team1"), game.get("team2")
+            if {t1, t2} == {team_a, team_b}:
+                return game
+    return None
+
+
+def _moneyline_to_probability(
+    ml_team1: int, ml_team2: int, team1_slug: str, target_team: str
+) -> float | None:
+    """Convert American moneylines to implied probability for target_team.
+
+    American odds: negative = favorite, positive = underdog.
+    -130 means bet $130 to win $100 → implied prob = 130/(130+100) = 56.5%
+    +110 means bet $100 to win $110 → implied prob = 100/(100+110) = 47.6%
+    """
+    def _ml_to_implied(ml: int) -> float:
+        if ml < 0:
+            return abs(ml) / (abs(ml) + 100)
+        else:
+            return 100 / (ml + 100)
+
+    implied_1 = _ml_to_implied(ml_team1)
+    implied_2 = _ml_to_implied(ml_team2)
+
+    # Remove vig by normalizing
+    total = implied_1 + implied_2
+    if total <= 0:
+        return None
+
+    prob_1 = implied_1 / total
+    return prob_1 if target_team == team1_slug else 1 - prob_1
+
+
+def _spread_to_probability(
+    spread: float, team1_slug: str, target_team: str
+) -> float | None:
+    """Convert point spread to approximate win probability.
+
+    Uses the empirical relationship: each point of spread ≈ 3% win probability.
+    Spread of -5.5 → ~68% win probability for the favorite.
+    """
+    if spread == 0:
+        return 0.5
+
+    # spread is negative for team1 favorite (e.g., -5.5)
+    # Convert to probability: 50% + (abs(spread) * 3%), capped at 99%
+    prob_1 = 0.5 + (abs(spread) * 0.03)
+    prob_1 = min(prob_1, 0.99)
+
+    # If spread is negative, team1 is favored
+    if spread < 0:
+        return prob_1 if target_team == team1_slug else 1 - prob_1
+    else:
+        return (1 - prob_1) if target_team == team1_slug else prob_1
 
 
 def _build_critical_games_from_splits(
