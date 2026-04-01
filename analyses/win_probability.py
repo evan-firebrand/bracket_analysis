@@ -54,6 +54,7 @@ def render(ctx: AnalysisContext):
     )
 
     _render_win_probabilities(ctx, scenario_results)
+    _render_projected_leaderboard(ctx)
     _render_how_this_ends(ctx)
     _render_critical_games(ctx, scenario_results)
     _render_finish_distributions(ctx, scenario_results)
@@ -109,6 +110,117 @@ def _render_win_probabilities(ctx, sr):
             + ", ".join(eliminated)
             + " — no remaining scenario has them finishing first."
         )
+
+
+def _render_projected_leaderboard(ctx):
+    """Show what the leaderboard looks like if the favorites win Saturday."""
+    remaining = get_remaining_slots(ctx.tournament, ctx.results)
+    if not remaining:
+        return
+
+    odds = _load_odds()
+    if not odds:
+        return
+
+    # Separate semifinal slots from championship
+    remaining_by_round: dict[int, list[str]] = {}
+    for slot_id in remaining:
+        rnd = ctx.tournament.slots[slot_id].round
+        remaining_by_round.setdefault(rnd, []).append(slot_id)
+
+    sorted_rounds = sorted(remaining_by_round.keys())
+    if len(sorted_rounds) < 2:
+        return
+
+    # Build "favorites win" scenario for non-championship games
+    deciding_rounds = sorted_rounds[:-1]
+    final_round = sorted_rounds[-1]
+    deciding_slots = []
+    for r in deciding_rounds:
+        deciding_slots.extend(remaining_by_round[r])
+
+    hypo = dict(ctx.results.results)
+    favorites = []
+    combined_prob = 1.0
+
+    for slot_id in deciding_slots:
+        team_a, team_b = _resolve_participants(
+            ctx.tournament, ctx.results.results, slot_id,
+        )
+        if not team_a or not team_b:
+            continue
+        prob_a = _get_win_probability(team_a, team_b, ctx.tournament, odds)
+        if prob_a >= 0.5:
+            winner, loser = team_a, team_b
+            combined_prob *= prob_a
+        else:
+            winner, loser = team_b, team_a
+            combined_prob *= (1 - prob_a)
+        hypo[slot_id] = GameResult(winner=winner, loser=loser)
+        favorites.append(ctx.team_name(winner))
+
+    if not favorites:
+        return
+
+    # Score everyone in the favorites-hold scenario (before championship)
+    partial_results = Results(last_updated="", results=hypo)
+    projected = []
+    for entry in ctx.entries:
+        scored = score_entry(entry, ctx.tournament, partial_results)
+        current_scored = ctx.get_scored(entry.player_name)
+        current_pts = current_scored.total_points if current_scored else 0
+        projected.append({
+            "Player": entry.player_name,
+            "Projected Pts": scored.total_points,
+            "Current Pts": current_pts,
+            "Gain": scored.total_points - current_pts,
+            "Max Possible": scored.max_possible,
+        })
+
+    projected.sort(key=lambda r: -r["Projected Pts"])
+
+    # Find who's projected #1 vs current #1
+    projected_leader = projected[0]["Player"]
+    current_leader = ctx.leaderboard.iloc[0]["Player"]
+
+    # Find projected leader's current rank
+    current_rank = None
+    for i, row in ctx.leaderboard.iterrows():
+        if row["Player"] == projected_leader:
+            current_rank = int(row["Rank"])
+            break
+
+    st.subheader("If Favorites Hold")
+    st.caption(
+        f"Projected standings if {' and '.join(favorites)} win Saturday "
+        f"({combined_prob:.0%} combined chance)"
+    )
+
+    # Narrative hook if the projected leader is different from current leader
+    if projected_leader != current_leader and current_rank and current_rank > 1:
+        lead_gap = projected[0]["Projected Pts"] - projected[1]["Projected Pts"]
+        st.markdown(
+            f"**The dark horse, {projected_leader}** — never higher than "
+            f"{ordinal(current_rank)} all tournament — jumps to "
+            f"**{ordinal(1)}** with a **{lead_gap}-point lead** "
+            f"if the favorites hold on Saturday. "
+            f"And both of their teams *are* the favorites."
+        )
+
+    # Table
+    df = pd.DataFrame(projected)
+    df.insert(0, "Proj. Rank", range(1, len(df) + 1))
+    st.dataframe(
+        df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Projected Pts": st.column_config.NumberColumn(format="%d"),
+            "Current Pts": st.column_config.NumberColumn(format="%d"),
+            "Gain": st.column_config.NumberColumn(format="+%d"),
+            "Max Possible": st.column_config.NumberColumn(format="%d"),
+        },
+    )
 
 
 def _load_odds() -> dict | None:
@@ -276,7 +388,6 @@ def _render_how_this_ends(ctx):
     for name, win_pct, rank in contenders:
         if rank >= 3 and win_pct >= 0.15:
             # Dark horse: winning a significant chunk but not on the podium
-            # Find if their path needs favorites or underdogs
             best_path = max(
                 (p for p in paths if name in p["final_winners"]),
                 key=lambda p: p["prob"],
@@ -284,19 +395,25 @@ def _render_how_this_ends(ctx):
             )
             if best_path:
                 st.markdown("---")
-                st.markdown(
-                    f"**Don't sleep on {name}.** Currently {ordinal(rank)} in "
-                    f"the standings, but wins the pool in {win_pct:.0%} of "
-                    f"scenarios. The most likely path? **{best_path['label']}** "
-                    f"({best_path['prob']:.0%} chance) — and both of those "
-                    f"teams are the Vegas favorites. If the favorites hold on "
-                    f"Saturday, {name} wins it all."
-                    if best_path["decided_early"]
-                    else
-                    f"**Don't sleep on {name}.** Currently {ordinal(rank)} in "
-                    f"the standings, but wins the pool in {win_pct:.0%} of "
-                    f"scenarios."
-                )
+                if best_path["decided_early"]:
+                    # Strong hook: this person has never led but could win
+                    # before the championship is even played
+                    st.markdown(
+                        f"**The dark horse: {name}.** Never higher than "
+                        f"{ordinal(rank)} all tournament, but "
+                        f"{win_pct:.0%} of scenarios end with {name} winning "
+                        f"the pool. The most likely single path to the finish? "
+                        f"**{best_path['label']}** ({best_path['prob']:.0%} "
+                        f"chance) — and both of those teams are the Vegas "
+                        f"favorites. If the chalk holds on Saturday, {name} "
+                        f"clinches it before the championship is even played."
+                    )
+                else:
+                    st.markdown(
+                        f"**The dark horse: {name}.** Currently "
+                        f"{ordinal(rank)} in the standings, but wins the "
+                        f"pool in {win_pct:.0%} of scenarios."
+                    )
                 break
 
 
