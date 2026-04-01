@@ -50,12 +50,28 @@ jobs:
         with:
           script: |
             const warnings = process.env.WARNINGS;
-            if (warnings && warnings.trim()) {
+            if (!warnings || !warnings.trim()) return;
+            const marker = '### PR Description Review';
+            const body = `${marker}\n\n${warnings}\n\nThis is an advisory — the sections above could use more detail.`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.startsWith(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: `### PR Description Review\n\n${warnings}\n\nThis is an advisory — the sections above could use more detail.`
+                body,
               });
             }
 
@@ -89,9 +105,26 @@ jobs:
           CHECKLIST: ${{ steps.checklist.outputs.body }}
         with:
           script: |
-            await github.rest.issues.createComment({
+            const marker = '### Review Checklist';
+            const body = process.env.CHECKLIST;
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: process.env.CHECKLIST
             });
+            const existing = comments.find(c => c.body.startsWith(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
