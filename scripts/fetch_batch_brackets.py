@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 import yaml
-from playwright.sync_api import sync_playwright, Page
+from playwright.sync_api import Page, sync_playwright
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src.extract_bracket import parse_picks_from_text, validate_bracket_tree
