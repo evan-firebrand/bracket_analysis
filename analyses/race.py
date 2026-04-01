@@ -204,6 +204,7 @@ def render(ctx: AnalysisContext):
 
     _render_rank_chart(ctx, history, round_labels)
     _render_key_moments(ctx)
+    _render_bracket_autopsy(ctx)
     _render_round_mvps(ctx, history, rounds, round_labels)
     _render_momentum(ctx, history, rounds, round_labels)
     _render_player_detail(ctx, history, rounds, round_labels)
@@ -383,6 +384,201 @@ def _render_elimination_moments(ctx):
             use_container_width=True,
             hide_index=True,
         )
+
+
+def _describe_depth(round_num: int) -> str:
+    """Describe how deep a player had a team going, in plain English."""
+    return {
+        6: "winning it all",
+        5: "the Final Four",
+        4: "the Elite Eight",
+        3: "the Sweet Sixteen",
+        2: "the Round of 32",
+    }.get(round_num, f"round {round_num}")
+
+
+def _build_player_regrets(ctx: AnalysisContext) -> list[dict]:
+    """For each player, find their costliest wrong pick and best call."""
+    results = []
+
+    for entry in ctx.entries:
+        name = entry.player_name
+        regrets = []
+        triumphs = []
+
+        for slot_id, result in ctx.results.results.items():
+            slot = ctx.tournament.slots[slot_id]
+            picked = entry.picks.get(slot_id)
+            winner_seed = ctx.team_seed(result.winner)
+            loser_seed = ctx.team_seed(result.loser)
+
+            if picked != result.winner:
+                # Wrong pick — how much did it cost?
+                loser = result.loser
+                pts_this = POINTS_PER_ROUND[slot.round]
+                future_pts = 0
+                deepest_round = slot.round
+                for oid, oslot in ctx.tournament.slots.items():
+                    if oslot.round > slot.round:
+                        if entry.picks.get(oid) == loser:
+                            future_pts += POINTS_PER_ROUND[oslot.round]
+                            deepest_round = max(deepest_round, oslot.round)
+
+                others_right = sum(
+                    1 for e in ctx.entries
+                    if e.player_name != name
+                    and e.picks.get(slot_id) == result.winner
+                )
+                regrets.append({
+                    "slot_id": slot_id,
+                    "round": slot.round,
+                    "team": loser,
+                    "beat_by": result.winner,
+                    "score": result.score or "",
+                    "team_seed": loser_seed,
+                    "beat_by_seed": winner_seed,
+                    "total_cost": pts_this + future_pts,
+                    "deepest_round": deepest_round,
+                    "others_right": others_right,
+                    "is_upset": (
+                        winner_seed is not None
+                        and loser_seed is not None
+                        and winner_seed > loser_seed
+                    ),
+                })
+            else:
+                # Correct pick — how contrarian was it?
+                others_right = sum(
+                    1 for e in ctx.entries
+                    if e.player_name != name
+                    and e.picks.get(slot_id) == result.winner
+                )
+                is_upset = (
+                    winner_seed is not None
+                    and loser_seed is not None
+                    and winner_seed > loser_seed
+                )
+                # Score by value * how few others had it
+                contrarian = len(ctx.entries) - 1 - others_right
+                pts = POINTS_PER_ROUND[slot.round]
+                triumphs.append({
+                    "slot_id": slot_id,
+                    "round": slot.round,
+                    "team": result.winner,
+                    "over": result.loser,
+                    "score": result.score or "",
+                    "team_seed": winner_seed,
+                    "over_seed": loser_seed,
+                    "pts": pts,
+                    "others_right": others_right,
+                    "contrarian": contrarian,
+                    "is_upset": is_upset,
+                    "value_score": pts * (1 + contrarian / len(ctx.entries)),
+                })
+
+        regrets.sort(key=lambda r: -r["total_cost"])
+        triumphs.sort(key=lambda t: -t["value_score"])
+
+        results.append({
+            "name": name,
+            "biggest_miss": regrets[0] if regrets else None,
+            "best_call": triumphs[0] if triumphs else None,
+        })
+
+    return results
+
+
+def _render_bracket_autopsy(ctx):
+    """Tell each player's story — their biggest miss and best call."""
+    regrets = _build_player_regrets(ctx)
+    if not regrets:
+        return
+
+    st.subheader("Bracket Autopsy")
+    st.caption("Every bracket tells a story — the picks that made you and the ones that broke you")
+
+    for player in regrets:
+        name = player["name"]
+        miss = player["biggest_miss"]
+        best = player["best_call"]
+
+        with st.expander(f"**{name}**", expanded=False):
+            if miss:
+                team = ctx.team_name(miss["team"])
+                beat_by = ctx.team_name(miss["beat_by"])
+                rnd = ROUND_NAMES[miss["round"]]
+                depth = _describe_depth(miss["deepest_round"])
+                score = f" ({miss['score']})" if miss["score"] else ""
+                others = miss["others_right"]
+                total_others = len(ctx.entries) - 1
+
+                # Build the narrative
+                if miss["deepest_round"] == 6:
+                    rode_line = f"had {team} winning the whole thing"
+                else:
+                    rode_line = f"had {team} going all the way to {depth}"
+
+                # Was this a shared pain or did they go it alone?
+                if others == 0:
+                    crowd_line = "Nobody else in the group saw it coming either."
+                elif others <= 2:
+                    crowd_line = f"Only {others} other{'s' if others > 1 else ''} in the group got that one right."
+                else:
+                    crowd_line = f"Most of the group got that one right — {others} of {total_others} had it."
+
+                # Was it close?
+                if miss["score"]:
+                    parts = miss["score"].split("-")
+                    if len(parts) == 2:
+                        try:
+                            margin = abs(int(parts[0]) - int(parts[1]))
+                            if margin <= 3:
+                                close_line = f" A {margin}-point game that could have gone either way."
+                            else:
+                                close_line = ""
+                        except ValueError:
+                            close_line = ""
+                    else:
+                        close_line = ""
+                else:
+                    close_line = ""
+
+                st.markdown(
+                    f"**The one that got away:** {name} {rode_line} — "
+                    f"then {beat_by} knocked them out in the {rnd}{score}.{close_line} "
+                    f"{crowd_line}"
+                )
+
+            if best:
+                team = ctx.team_name(best["team"])
+                over = ctx.team_name(best["over"])
+                rnd = ROUND_NAMES[best["round"]]
+                score = f" ({best['score']})" if best["score"] else ""
+                others = best["others_right"]
+                total_others = len(ctx.entries) - 1
+
+                if best["is_upset"] and others == 0:
+                    call_line = (
+                        f"**The best call:** Called the {team} upset over {over} "
+                        f"in the {rnd}{score} — the only one in the group who had it."
+                    )
+                elif best["is_upset"]:
+                    call_line = (
+                        f"**The best call:** Nailed the {team} upset over {over} "
+                        f"in the {rnd}{score}."
+                    )
+                elif others <= 1:
+                    call_line = (
+                        f"**The best call:** Had {team} over {over} in the "
+                        f"{rnd}{score} when almost nobody else did."
+                    )
+                else:
+                    call_line = (
+                        f"**The best call:** Picked {team} to beat {over} in the "
+                        f"{rnd}{score}."
+                    )
+
+                st.markdown(call_line)
 
 
 def _render_rank_chart(ctx, history, round_labels):
