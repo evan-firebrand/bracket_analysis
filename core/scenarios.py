@@ -39,6 +39,18 @@ class ScenarioResults:
 
 
 @dataclass
+class GameProbability:
+    """Win probability with transparency about its source."""
+
+    team_a: str
+    team_b: str
+    prob_a: float  # probability team_a wins (0.0 to 1.0)
+    source: str  # "moneyline", "spread", "seed_historical", "coin_flip"
+    raw_value: str | None  # e.g. "-130/+110", "-6.5", "1v16", None
+    confidence: str  # "high", "medium", "low", "none"
+
+
+@dataclass
 class CriticalGame:
     """How a single game's outcome swings each player's win probability."""
 
@@ -303,7 +315,7 @@ def monte_carlo_scenarios(
                     continue
 
                 prob_a = _get_win_probability(
-                    team_a, team_b, tournament, odds
+                    team_a, team_b, tournament, odds, slot_id
                 )
                 if random.random() < prob_a:
                     winner, loser = team_a, team_b
@@ -396,28 +408,30 @@ def what_if(
     return Results(last_updated=results.last_updated, results=new_results)
 
 
-def _get_win_probability(
+def get_game_probability(
     team_a: str,
     team_b: str,
     tournament: TournamentStructure,
     odds: dict | None,
     slot_id: str | None = None,
-) -> float:
-    """Get probability that team_a beats team_b.
+) -> GameProbability:
+    """Get win probability with full transparency about the source.
 
     Priority order:
-    1. Per-game moneyline from odds["rounds"] (most accurate)
-    2. Per-game spread from odds["rounds"] (converted via formula)
-    3. Per-team round advancement odds from odds["teams"] (if available)
-    4. Seed-based historical win rates (fallback)
-    5. 0.5 coin flip (last resort)
+    1. Per-game moneyline from odds["rounds"] (high confidence)
+    2. Per-game spread from odds["rounds"] (medium confidence)
+    3. Per-team round advancement odds from odds["teams"] (medium confidence)
+    4. Seed-based historical win rates (low confidence)
+    5. 0.5 coin flip (no confidence)
+
+    This is the public API — plugins use this to show users where
+    probabilities come from.
     """
     if odds:
-        # Try per-game format: odds["rounds"][round_name][game]
         if "rounds" in odds:
             game_odds = _find_game_odds(odds, team_a, team_b, slot_id)
             if game_odds:
-                # Try moneyline first (most direct)
+                # Try moneyline first
                 ml_a = game_odds.get("moneyline_team1")
                 ml_b = game_odds.get("moneyline_team2")
                 if ml_a is not None and ml_b is not None:
@@ -425,22 +439,31 @@ def _get_win_probability(
                         ml_a, ml_b, game_odds.get("team1"), team_a
                     )
                     if prob is not None:
-                        return prob
+                        return GameProbability(
+                            team_a=team_a, team_b=team_b, prob_a=prob,
+                            source="moneyline",
+                            raw_value=f"{ml_a}/{ml_b:+d}" if ml_b >= 0 else f"{ml_a}/{ml_b}",
+                            confidence="high",
+                        )
 
-                # Try spread (convert to probability)
+                # Try spread
                 spread = game_odds.get("spread")
                 if spread is not None:
                     prob = _spread_to_probability(
                         spread, game_odds.get("team1"), team_a
                     )
                     if prob is not None:
-                        return prob
+                        return GameProbability(
+                            team_a=team_a, team_b=team_b, prob_a=prob,
+                            source="spread",
+                            raw_value=f"{spread:+.1f}",
+                            confidence="medium",
+                        )
 
-        # Try per-team format: odds["teams"][slug]["round_probs"]
+        # Try per-team format
         if "teams" in odds:
             odds_a = odds["teams"].get(team_a, {})
             odds_b = odds["teams"].get(team_b, {})
-
             rp_a = odds_a.get("round_probs", {})
             rp_b = odds_b.get("round_probs", {})
 
@@ -448,12 +471,13 @@ def _get_win_probability(
                 pa = rp_a.get(key)
                 pb = rp_b.get(key)
                 if pa is not None and pb is not None and (pa + pb) > 0:
-                    return pa / (pa + pb)
-
-            pa = odds_a.get("championship")
-            pb = odds_b.get("championship")
-            if pa is not None and pb is not None and (pa + pb) > 0:
-                return pa / (pa + pb)
+                    return GameProbability(
+                        team_a=team_a, team_b=team_b,
+                        prob_a=pa / (pa + pb),
+                        source="round_advancement",
+                        raw_value=f"{pa:.3f}/{pb:.3f}",
+                        confidence="medium",
+                    )
 
     # Fallback: seed-based historical win rates
     t_a = tournament.teams.get(team_a)
@@ -463,9 +487,31 @@ def _get_win_probability(
         low_seed = max(t_a.seed, t_b.seed)
         rate = SEED_WIN_RATES.get((high_seed, low_seed))
         if rate is not None:
-            return rate if t_a.seed <= t_b.seed else 1 - rate
+            prob = rate if t_a.seed <= t_b.seed else 1 - rate
+            return GameProbability(
+                team_a=team_a, team_b=team_b, prob_a=prob,
+                source="seed_historical",
+                raw_value=f"({high_seed}) vs ({low_seed})",
+                confidence="low",
+            )
 
-    return 0.5  # true coin flip if nothing else
+    return GameProbability(
+        team_a=team_a, team_b=team_b, prob_a=0.5,
+        source="coin_flip",
+        raw_value=None,
+        confidence="none",
+    )
+
+
+def _get_win_probability(
+    team_a: str,
+    team_b: str,
+    tournament: TournamentStructure,
+    odds: dict | None,
+    slot_id: str | None = None,
+) -> float:
+    """Internal shortcut — returns just the float for engine use."""
+    return get_game_probability(team_a, team_b, tournament, odds, slot_id).prob_a
 
 
 def _find_game_odds(
