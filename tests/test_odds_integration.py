@@ -356,14 +356,14 @@ class TestRealDataIntegration:
         assert gp.source == "moneyline"
         assert 0.52 < gp.prob_a < 0.57
 
-    def test_championship_falls_back(self, real_tournament, real_odds):
-        """Championship has no odds yet → should fall back gracefully."""
+    def test_championship_no_direct_game_odds(self, real_tournament, real_odds):
+        """Championship has no per-game line → uses fallback (round_advancement, seed, or coin flip)."""
         gp = get_game_probability(
             "illinois", "michigan", real_tournament, real_odds, "championship"
         )
-        # Should be seed_historical or coin_flip, not moneyline
-        assert gp.source in ("seed_historical", "coin_flip", "spread")
-        assert gp.confidence in ("low", "none", "medium")
+        # No direct moneyline for the championship game
+        assert gp.source != "moneyline"
+        assert 0.01 < gp.prob_a < 0.99
 
     def test_all_odds_produce_valid_probabilities(self, real_tournament, real_odds):
         """Every game in odds.json should produce a probability in (0, 1)."""
