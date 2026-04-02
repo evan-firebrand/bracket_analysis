@@ -207,18 +207,36 @@ def _render_projected_leaderboard(ctx):
             f"And both of their teams *are* the favorites."
         )
 
-    # Table
-    df = pd.DataFrame(projected)
+    # Only show players who can still win or who move — top 5
+    show = projected[:5]
+    df = pd.DataFrame(show)
     df.insert(0, "Proj. Rank", range(1, len(df) + 1))
+
+    # Add current rank for movement context
+    rank_lookup = {}
+    for _, row in ctx.leaderboard.iterrows():
+        rank_lookup[row["Player"]] = int(row["Rank"])
+    df["Current Rank"] = df["Player"].map(rank_lookup)
+    df["Movement"] = df.apply(
+        lambda r: (
+            f"+{r['Current Rank'] - r['Proj. Rank']}"
+            if r["Current Rank"] > r["Proj. Rank"]
+            else str(r["Current Rank"] - r["Proj. Rank"])
+            if r["Current Rank"] < r["Proj. Rank"]
+            else "—"
+        ),
+        axis=1,
+    )
+
     st.dataframe(
-        df,
+        df[["Proj. Rank", "Player", "Projected Pts", "Current Pts",
+            "Gain", "Movement"]],
         use_container_width=True,
         hide_index=True,
         column_config={
             "Projected Pts": st.column_config.NumberColumn(format="%d"),
             "Current Pts": st.column_config.NumberColumn(format="%d"),
             "Gain": st.column_config.NumberColumn(format="+%d"),
-            "Max Possible": st.column_config.NumberColumn(format="%d"),
         },
     )
 
