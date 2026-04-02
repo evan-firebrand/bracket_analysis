@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
 
 from core.context import AnalysisContext
 from core.models import GameResult, Results
 from core.narrative import describe_trend, ordinal
+from core.scenarios import brute_force_scenarios, monte_carlo_scenarios
 from core.scoring import POINTS_PER_ROUND, ROUND_NAMES, score_entry
+from core.tournament import get_remaining_slots
 
 TITLE = "The Race"
 DESCRIPTION = "How the standings have shifted round by round"
@@ -203,11 +208,151 @@ def render(ctx: AnalysisContext):
     round_labels = [ROUND_NAMES.get(r, f"Round {r}") for r in rounds]
 
     _render_rank_chart(ctx, history, round_labels)
+    _render_probability_arc(ctx, history)
     _render_key_moments(ctx)
     _render_bracket_autopsy(ctx)
     _render_round_mvps(ctx, history, rounds, round_labels)
     _render_momentum(ctx, history, rounds, round_labels)
     _render_player_detail(ctx, history, rounds, round_labels)
+
+
+def _build_probability_arc(ctx: AnalysisContext) -> dict | None:
+    """Build round-by-round win probability for every player.
+
+    Returns dict with 'rounds' (list of round labels) and 'probabilities'
+    (player_name -> list of win% values), or None if not enough data.
+    """
+    completed_rounds = sorted({
+        slot.round
+        for slot in ctx.tournament.slots.values()
+        if ctx.results.is_complete(slot.slot_id)
+    })
+    if not completed_rounds:
+        return None
+
+    # Load odds for Monte Carlo weighting
+    odds_path = Path("data/odds.json")
+    odds = None
+    if odds_path.exists():
+        with open(odds_path) as f:
+            odds = json.load(f)
+
+    names = ctx.player_names()
+    probs: dict[str, list[float]] = {n: [] for n in names}
+    round_labels: list[str] = []
+
+    for through_round in completed_rounds:
+        filtered = {
+            sid: result for sid, result in ctx.results.results.items()
+            if ctx.tournament.slots[sid].round <= through_round
+        }
+        partial = Results(last_updated="", results=filtered)
+        remaining = get_remaining_slots(ctx.tournament, partial)
+
+        if len(remaining) <= 15:
+            sr = brute_force_scenarios(ctx.entries, ctx.tournament, partial)
+        else:
+            sr = monte_carlo_scenarios(
+                ctx.entries, ctx.tournament, partial,
+                odds=odds, n_simulations=100_000, seed=42,
+            )
+
+        total = sr.total_scenarios
+        for name in names:
+            pct = sr.win_counts[name] / total * 100 if total > 0 else 0
+            probs[name].append(round(pct, 1))
+
+        round_labels.append(ROUND_NAMES.get(through_round, f"R{through_round}"))
+
+    return {"rounds": round_labels, "probabilities": probs}
+
+
+def _find_arc_callouts(probs: dict[str, list[float]], round_labels: list[str]) -> list[str]:
+    """Generate narrative callouts from probability arc data."""
+    callouts = []
+    names = list(probs.keys())
+
+    for name in names:
+        vals = probs[name]
+        if len(vals) < 2:
+            continue
+
+        # Biggest single-round jump
+        max_jump = 0
+        max_jump_idx = 0
+        for i in range(1, len(vals)):
+            jump = vals[i] - vals[i - 1]
+            if abs(jump) > abs(max_jump):
+                max_jump = jump
+                max_jump_idx = i
+
+        # Player went from alive to eliminated
+        if vals[-1] == 0 and any(v > 0 for v in vals):
+            last_alive_idx = max(i for i, v in enumerate(vals) if v > 0)
+            callouts.append(
+                f"**{name}** was eliminated after {round_labels[last_alive_idx]} "
+                f"(was at {vals[last_alive_idx]:.0f}%)"
+            )
+
+        # Big surge (>10pp in one round)
+        elif max_jump > 10:
+            callouts.append(
+                f"**{name}** surged +{max_jump:.0f}pp in {round_labels[max_jump_idx]} "
+                f"({vals[max_jump_idx - 1]:.0f}% to {vals[max_jump_idx]:.0f}%)"
+            )
+
+        # Big drop (>10pp in one round, but still alive)
+        elif max_jump < -10 and vals[-1] > 0:
+            idx = max_jump_idx
+            callouts.append(
+                f"**{name}** dropped {max_jump:.0f}pp in {round_labels[idx]} "
+                f"({vals[idx - 1]:.0f}% to {vals[idx]:.0f}%)"
+            )
+
+    # Overall arc: who started lowest and is now highest among survivors?
+    survivors = {n: v for n, v in probs.items() if v[-1] > 0}
+    if survivors:
+        # Dark horse: lowest start among current contenders
+        dark_horse = min(survivors, key=lambda n: survivors[n][0])
+        if survivors[dark_horse][-1] > survivors[dark_horse][0]:
+            callouts.append(
+                f"**Dark horse {dark_horse}**: started at "
+                f"{survivors[dark_horse][0]:.0f}%, now at "
+                f"{survivors[dark_horse][-1]:.0f}%"
+            )
+
+    return callouts
+
+
+def _render_probability_arc(ctx: AnalysisContext, history: dict):
+    """Show each player's win probability through every round."""
+    st.subheader("Win Probability by Round")
+
+    arc = _build_probability_arc(ctx)
+    if not arc:
+        st.info("Not enough data to build probability arcs.")
+        return
+
+    round_labels = arc["rounds"]
+    probs = arc["probabilities"]
+
+    # Chart
+    chart_df = pd.DataFrame(probs, index=round_labels)
+    st.line_chart(chart_df)
+
+    # Callouts
+    callouts = _find_arc_callouts(probs, round_labels)
+    if callouts:
+        for callout in callouts:
+            st.markdown(f"- {callout}")
+
+    # Data table (collapsible)
+    with st.expander("Full data"):
+        table_data = {"Round": round_labels}
+        for name in probs:
+            table_data[name] = [f"{v:.1f}%" for v in probs[name]]
+        st.dataframe(pd.DataFrame(table_data), hide_index=True, use_container_width=True)
+
 
 
 def _render_key_moments(ctx):
