@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from core.models import PlayerEntry, Results, TournamentStructure
 from core.scoring import POINTS_PER_ROUND, get_alive_teams
 
-
 # --- Counterfactual Entry ---
 
 
