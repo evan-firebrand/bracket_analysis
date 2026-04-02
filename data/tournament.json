@@ -1,51 +1,615 @@
 {
   "year": 2026,
   "teams": {
-    "duke": {"name": "Duke", "seed": 1, "region": "East"},
-    "unc": {"name": "North Carolina", "seed": 2, "region": "East"},
-    "gonzaga": {"name": "Gonzaga", "seed": 3, "region": "East"},
-    "purdue": {"name": "Purdue", "seed": 4, "region": "East"},
-    "houston": {"name": "Houston", "seed": 1, "region": "West"},
-    "tennessee": {"name": "Tennessee", "seed": 2, "region": "West"},
-    "alabama": {"name": "Alabama", "seed": 3, "region": "West"},
-    "arizona": {"name": "Arizona", "seed": 4, "region": "West"}
+    "akron": {
+      "name": "Akron",
+      "seed": 12,
+      "region": "Midwest"
+    },
+    "alabama": {
+      "name": "Alabama",
+      "seed": 4,
+      "region": "Midwest"
+    },
+    "arizona": {
+      "name": "Arizona",
+      "seed": 1,
+      "region": "West"
+    },
+    "arkansas": {
+      "name": "Arkansas",
+      "seed": 4,
+      "region": "West"
+    },
+    "byu": {
+      "name": "BYU",
+      "seed": 6,
+      "region": "West"
+    },
+    "cal_baptist": {
+      "name": "Cal Baptist",
+      "seed": 13,
+      "region": "East"
+    },
+    "clemson": {
+      "name": "Clemson",
+      "seed": 8,
+      "region": "South"
+    },
+    "duke": {
+      "name": "Duke",
+      "seed": 1,
+      "region": "East"
+    },
+    "florida": {
+      "name": "Florida",
+      "seed": 1,
+      "region": "South"
+    },
+    "furman": {
+      "name": "Furman",
+      "seed": 15,
+      "region": "East"
+    },
+    "georgia": {
+      "name": "Georgia",
+      "seed": 8,
+      "region": "Midwest"
+    },
+    "gonzaga": {
+      "name": "Gonzaga",
+      "seed": 3,
+      "region": "West"
+    },
+    "hawaii": {
+      "name": "Hawaii",
+      "seed": 13,
+      "region": "West"
+    },
+    "high_point": {
+      "name": "High Point",
+      "seed": 12,
+      "region": "West"
+    },
+    "hofstra": {
+      "name": "Hofstra",
+      "seed": 13,
+      "region": "Midwest"
+    },
+    "houston": {
+      "name": "Houston",
+      "seed": 2,
+      "region": "South"
+    },
+    "howard": {
+      "name": "Howard",
+      "seed": 16,
+      "region": "Midwest"
+    },
+    "idaho": {
+      "name": "Idaho",
+      "seed": 15,
+      "region": "South"
+    },
+    "illinois": {
+      "name": "Illinois",
+      "seed": 3,
+      "region": "South"
+    },
+    "iowa": {
+      "name": "Iowa",
+      "seed": 9,
+      "region": "South"
+    },
+    "iowa_st": {
+      "name": "Iowa St.",
+      "seed": 2,
+      "region": "Midwest"
+    },
+    "kansas": {
+      "name": "Kansas",
+      "seed": 4,
+      "region": "East"
+    },
+    "kennesaw_st": {
+      "name": "Kennesaw St.",
+      "seed": 14,
+      "region": "West"
+    },
+    "kentucky": {
+      "name": "Kentucky",
+      "seed": 7,
+      "region": "Midwest"
+    },
+    "long_island": {
+      "name": "Long Island",
+      "seed": 16,
+      "region": "West"
+    },
+    "louisville": {
+      "name": "Louisville",
+      "seed": 6,
+      "region": "East"
+    },
+    "mcneese": {
+      "name": "McNeese",
+      "seed": 12,
+      "region": "South"
+    },
+    "miami_fl": {
+      "name": "Miami (FL)",
+      "seed": 7,
+      "region": "West"
+    },
+    "miami_ohio": {
+      "name": "Miami (Ohio)",
+      "seed": 11,
+      "region": "Midwest"
+    },
+    "michigan": {
+      "name": "Michigan",
+      "seed": 1,
+      "region": "Midwest"
+    },
+    "michigan_st": {
+      "name": "Michigan St.",
+      "seed": 3,
+      "region": "East"
+    },
+    "missouri": {
+      "name": "Missouri",
+      "seed": 10,
+      "region": "West"
+    },
+    "nebraska": {
+      "name": "Nebraska",
+      "seed": 4,
+      "region": "South"
+    },
+    "north_carolina": {
+      "name": "North Carolina",
+      "seed": 6,
+      "region": "South"
+    },
+    "north_dakota_st": {
+      "name": "North Dakota St.",
+      "seed": 14,
+      "region": "East"
+    },
+    "northern_iowa": {
+      "name": "Northern Iowa",
+      "seed": 12,
+      "region": "East"
+    },
+    "ohio_st": {
+      "name": "Ohio St.",
+      "seed": 8,
+      "region": "East"
+    },
+    "penn": {
+      "name": "Penn",
+      "seed": 14,
+      "region": "South"
+    },
+    "prairie_view_am": {
+      "name": "Prairie View A&M",
+      "seed": 16,
+      "region": "South"
+    },
+    "purdue": {
+      "name": "Purdue",
+      "seed": 2,
+      "region": "West"
+    },
+    "queens_nc": {
+      "name": "Queens (N.C.)",
+      "seed": 15,
+      "region": "West"
+    },
+    "saint_louis": {
+      "name": "Saint Louis",
+      "seed": 9,
+      "region": "Midwest"
+    },
+    "saint_marys": {
+      "name": "Saint Mary's",
+      "seed": 7,
+      "region": "South"
+    },
+    "santa_clara": {
+      "name": "Santa Clara",
+      "seed": 10,
+      "region": "Midwest"
+    },
+    "siena": {
+      "name": "Siena",
+      "seed": 16,
+      "region": "East"
+    },
+    "south_florida": {
+      "name": "South Florida",
+      "seed": 11,
+      "region": "East"
+    },
+    "st_johns": {
+      "name": "St. John's",
+      "seed": 5,
+      "region": "East"
+    },
+    "tcu": {
+      "name": "TCU",
+      "seed": 9,
+      "region": "East"
+    },
+    "tennessee": {
+      "name": "Tennessee",
+      "seed": 6,
+      "region": "Midwest"
+    },
+    "tennessee_st": {
+      "name": "Tennessee St.",
+      "seed": 15,
+      "region": "Midwest"
+    },
+    "texas": {
+      "name": "Texas",
+      "seed": 11,
+      "region": "West"
+    },
+    "texas_am": {
+      "name": "Texas A&M",
+      "seed": 10,
+      "region": "South"
+    },
+    "texas_tech": {
+      "name": "Texas Tech",
+      "seed": 5,
+      "region": "Midwest"
+    },
+    "troy": {
+      "name": "Troy",
+      "seed": 13,
+      "region": "South"
+    },
+    "ucf": {
+      "name": "UCF",
+      "seed": 10,
+      "region": "East"
+    },
+    "ucla": {
+      "name": "UCLA",
+      "seed": 7,
+      "region": "East"
+    },
+    "uconn": {
+      "name": "UConn",
+      "seed": 2,
+      "region": "East"
+    },
+    "utah_st": {
+      "name": "Utah St.",
+      "seed": 9,
+      "region": "West"
+    },
+    "vanderbilt": {
+      "name": "Vanderbilt",
+      "seed": 5,
+      "region": "South"
+    },
+    "vcu": {
+      "name": "VCU",
+      "seed": 11,
+      "region": "South"
+    },
+    "villanova": {
+      "name": "Villanova",
+      "seed": 8,
+      "region": "West"
+    },
+    "virginia": {
+      "name": "Virginia",
+      "seed": 3,
+      "region": "Midwest"
+    },
+    "wisconsin": {
+      "name": "Wisconsin",
+      "seed": 5,
+      "region": "West"
+    },
+    "wright_st": {
+      "name": "Wright St.",
+      "seed": 14,
+      "region": "Midwest"
+    }
   },
   "slots": [
     {
-      "slot_id": "r1_east_1v4",
+      "slot_id": "r1_east_1v16",
       "round": 1,
       "region": "East",
       "position": 1,
       "top_team": "duke",
-      "bottom_team": "purdue",
+      "bottom_team": "siena",
       "feeds_into": "r2_east_1"
     },
     {
-      "slot_id": "r1_east_2v3",
+      "slot_id": "r1_east_8v9",
       "round": 1,
       "region": "East",
       "position": 2,
-      "top_team": "unc",
-      "bottom_team": "gonzaga",
+      "top_team": "ohio_st",
+      "bottom_team": "tcu",
       "feeds_into": "r2_east_1"
     },
     {
-      "slot_id": "r1_west_1v4",
+      "slot_id": "r1_east_5v12",
+      "round": 1,
+      "region": "East",
+      "position": 3,
+      "top_team": "st_johns",
+      "bottom_team": "northern_iowa",
+      "feeds_into": "r2_east_2"
+    },
+    {
+      "slot_id": "r1_east_4v13",
+      "round": 1,
+      "region": "East",
+      "position": 4,
+      "top_team": "kansas",
+      "bottom_team": "cal_baptist",
+      "feeds_into": "r2_east_2"
+    },
+    {
+      "slot_id": "r1_east_6v11",
+      "round": 1,
+      "region": "East",
+      "position": 5,
+      "top_team": "louisville",
+      "bottom_team": "south_florida",
+      "feeds_into": "r2_east_3"
+    },
+    {
+      "slot_id": "r1_east_3v14",
+      "round": 1,
+      "region": "East",
+      "position": 6,
+      "top_team": "michigan_st",
+      "bottom_team": "north_dakota_st",
+      "feeds_into": "r2_east_3"
+    },
+    {
+      "slot_id": "r1_east_7v10",
+      "round": 1,
+      "region": "East",
+      "position": 7,
+      "top_team": "ucla",
+      "bottom_team": "ucf",
+      "feeds_into": "r2_east_4"
+    },
+    {
+      "slot_id": "r1_east_2v15",
+      "round": 1,
+      "region": "East",
+      "position": 8,
+      "top_team": "uconn",
+      "bottom_team": "furman",
+      "feeds_into": "r2_east_4"
+    },
+    {
+      "slot_id": "r1_west_1v16",
       "round": 1,
       "region": "West",
       "position": 1,
-      "top_team": "houston",
-      "bottom_team": "arizona",
+      "top_team": "arizona",
+      "bottom_team": "long_island",
       "feeds_into": "r2_west_1"
     },
     {
-      "slot_id": "r1_west_2v3",
+      "slot_id": "r1_west_8v9",
       "round": 1,
       "region": "West",
       "position": 2,
-      "top_team": "tennessee",
-      "bottom_team": "alabama",
+      "top_team": "villanova",
+      "bottom_team": "utah_st",
       "feeds_into": "r2_west_1"
+    },
+    {
+      "slot_id": "r1_west_5v12",
+      "round": 1,
+      "region": "West",
+      "position": 3,
+      "top_team": "wisconsin",
+      "bottom_team": "high_point",
+      "feeds_into": "r2_west_2"
+    },
+    {
+      "slot_id": "r1_west_4v13",
+      "round": 1,
+      "region": "West",
+      "position": 4,
+      "top_team": "arkansas",
+      "bottom_team": "hawaii",
+      "feeds_into": "r2_west_2"
+    },
+    {
+      "slot_id": "r1_west_6v11",
+      "round": 1,
+      "region": "West",
+      "position": 5,
+      "top_team": "byu",
+      "bottom_team": "texas",
+      "feeds_into": "r2_west_3"
+    },
+    {
+      "slot_id": "r1_west_3v14",
+      "round": 1,
+      "region": "West",
+      "position": 6,
+      "top_team": "gonzaga",
+      "bottom_team": "kennesaw_st",
+      "feeds_into": "r2_west_3"
+    },
+    {
+      "slot_id": "r1_west_7v10",
+      "round": 1,
+      "region": "West",
+      "position": 7,
+      "top_team": "miami_fl",
+      "bottom_team": "missouri",
+      "feeds_into": "r2_west_4"
+    },
+    {
+      "slot_id": "r1_west_2v15",
+      "round": 1,
+      "region": "West",
+      "position": 8,
+      "top_team": "purdue",
+      "bottom_team": "queens_nc",
+      "feeds_into": "r2_west_4"
+    },
+    {
+      "slot_id": "r1_south_1v16",
+      "round": 1,
+      "region": "South",
+      "position": 1,
+      "top_team": "florida",
+      "bottom_team": "prairie_view_am",
+      "feeds_into": "r2_south_1"
+    },
+    {
+      "slot_id": "r1_south_8v9",
+      "round": 1,
+      "region": "South",
+      "position": 2,
+      "top_team": "clemson",
+      "bottom_team": "iowa",
+      "feeds_into": "r2_south_1"
+    },
+    {
+      "slot_id": "r1_south_5v12",
+      "round": 1,
+      "region": "South",
+      "position": 3,
+      "top_team": "vanderbilt",
+      "bottom_team": "mcneese",
+      "feeds_into": "r2_south_2"
+    },
+    {
+      "slot_id": "r1_south_4v13",
+      "round": 1,
+      "region": "South",
+      "position": 4,
+      "top_team": "nebraska",
+      "bottom_team": "troy",
+      "feeds_into": "r2_south_2"
+    },
+    {
+      "slot_id": "r1_south_6v11",
+      "round": 1,
+      "region": "South",
+      "position": 5,
+      "top_team": "north_carolina",
+      "bottom_team": "vcu",
+      "feeds_into": "r2_south_3"
+    },
+    {
+      "slot_id": "r1_south_3v14",
+      "round": 1,
+      "region": "South",
+      "position": 6,
+      "top_team": "illinois",
+      "bottom_team": "penn",
+      "feeds_into": "r2_south_3"
+    },
+    {
+      "slot_id": "r1_south_7v10",
+      "round": 1,
+      "region": "South",
+      "position": 7,
+      "top_team": "saint_marys",
+      "bottom_team": "texas_am",
+      "feeds_into": "r2_south_4"
+    },
+    {
+      "slot_id": "r1_south_2v15",
+      "round": 1,
+      "region": "South",
+      "position": 8,
+      "top_team": "houston",
+      "bottom_team": "idaho",
+      "feeds_into": "r2_south_4"
+    },
+    {
+      "slot_id": "r1_midwest_1v16",
+      "round": 1,
+      "region": "Midwest",
+      "position": 1,
+      "top_team": "michigan",
+      "bottom_team": "howard",
+      "feeds_into": "r2_midwest_1"
+    },
+    {
+      "slot_id": "r1_midwest_8v9",
+      "round": 1,
+      "region": "Midwest",
+      "position": 2,
+      "top_team": "georgia",
+      "bottom_team": "saint_louis",
+      "feeds_into": "r2_midwest_1"
+    },
+    {
+      "slot_id": "r1_midwest_5v12",
+      "round": 1,
+      "region": "Midwest",
+      "position": 3,
+      "top_team": "texas_tech",
+      "bottom_team": "akron",
+      "feeds_into": "r2_midwest_2"
+    },
+    {
+      "slot_id": "r1_midwest_4v13",
+      "round": 1,
+      "region": "Midwest",
+      "position": 4,
+      "top_team": "alabama",
+      "bottom_team": "hofstra",
+      "feeds_into": "r2_midwest_2"
+    },
+    {
+      "slot_id": "r1_midwest_6v11",
+      "round": 1,
+      "region": "Midwest",
+      "position": 5,
+      "top_team": "tennessee",
+      "bottom_team": "miami_ohio",
+      "feeds_into": "r2_midwest_3"
+    },
+    {
+      "slot_id": "r1_midwest_3v14",
+      "round": 1,
+      "region": "Midwest",
+      "position": 6,
+      "top_team": "virginia",
+      "bottom_team": "wright_st",
+      "feeds_into": "r2_midwest_3"
+    },
+    {
+      "slot_id": "r1_midwest_7v10",
+      "round": 1,
+      "region": "Midwest",
+      "position": 7,
+      "top_team": "kentucky",
+      "bottom_team": "santa_clara",
+      "feeds_into": "r2_midwest_4"
+    },
+    {
+      "slot_id": "r1_midwest_2v15",
+      "round": 1,
+      "region": "Midwest",
+      "position": 8,
+      "top_team": "iowa_st",
+      "bottom_team": "tennessee_st",
+      "feeds_into": "r2_midwest_4"
     },
     {
       "slot_id": "r2_east_1",
@@ -54,7 +618,34 @@
       "position": 1,
       "top_team": null,
       "bottom_team": null,
-      "feeds_into": "championship"
+      "feeds_into": "r3_east_1"
+    },
+    {
+      "slot_id": "r2_east_2",
+      "round": 2,
+      "region": "East",
+      "position": 2,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_east_1"
+    },
+    {
+      "slot_id": "r2_east_3",
+      "round": 2,
+      "region": "East",
+      "position": 3,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_east_2"
+    },
+    {
+      "slot_id": "r2_east_4",
+      "round": 2,
+      "region": "East",
+      "position": 4,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_east_2"
     },
     {
       "slot_id": "r2_west_1",
@@ -63,11 +654,236 @@
       "position": 1,
       "top_team": null,
       "bottom_team": null,
+      "feeds_into": "r3_west_1"
+    },
+    {
+      "slot_id": "r2_west_2",
+      "round": 2,
+      "region": "West",
+      "position": 2,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_west_1"
+    },
+    {
+      "slot_id": "r2_west_3",
+      "round": 2,
+      "region": "West",
+      "position": 3,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_west_2"
+    },
+    {
+      "slot_id": "r2_west_4",
+      "round": 2,
+      "region": "West",
+      "position": 4,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_west_2"
+    },
+    {
+      "slot_id": "r2_south_1",
+      "round": 2,
+      "region": "South",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_south_1"
+    },
+    {
+      "slot_id": "r2_south_2",
+      "round": 2,
+      "region": "South",
+      "position": 2,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_south_1"
+    },
+    {
+      "slot_id": "r2_south_3",
+      "round": 2,
+      "region": "South",
+      "position": 3,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_south_2"
+    },
+    {
+      "slot_id": "r2_south_4",
+      "round": 2,
+      "region": "South",
+      "position": 4,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_south_2"
+    },
+    {
+      "slot_id": "r2_midwest_1",
+      "round": 2,
+      "region": "Midwest",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_midwest_1"
+    },
+    {
+      "slot_id": "r2_midwest_2",
+      "round": 2,
+      "region": "Midwest",
+      "position": 2,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_midwest_1"
+    },
+    {
+      "slot_id": "r2_midwest_3",
+      "round": 2,
+      "region": "Midwest",
+      "position": 3,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_midwest_2"
+    },
+    {
+      "slot_id": "r2_midwest_4",
+      "round": 2,
+      "region": "Midwest",
+      "position": 4,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r3_midwest_2"
+    },
+    {
+      "slot_id": "r3_east_1",
+      "round": 3,
+      "region": "East",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r4_east_1"
+    },
+    {
+      "slot_id": "r3_east_2",
+      "round": 3,
+      "region": "East",
+      "position": 2,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r4_east_1"
+    },
+    {
+      "slot_id": "r3_west_1",
+      "round": 3,
+      "region": "West",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r4_west_1"
+    },
+    {
+      "slot_id": "r3_west_2",
+      "round": 3,
+      "region": "West",
+      "position": 2,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r4_west_1"
+    },
+    {
+      "slot_id": "r3_south_1",
+      "round": 3,
+      "region": "South",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r4_south_1"
+    },
+    {
+      "slot_id": "r3_south_2",
+      "round": 3,
+      "region": "South",
+      "position": 2,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r4_south_1"
+    },
+    {
+      "slot_id": "r3_midwest_1",
+      "round": 3,
+      "region": "Midwest",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r4_midwest_1"
+    },
+    {
+      "slot_id": "r3_midwest_2",
+      "round": 3,
+      "region": "Midwest",
+      "position": 2,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r4_midwest_1"
+    },
+    {
+      "slot_id": "r4_east_1",
+      "round": 4,
+      "region": "East",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r5_semi1"
+    },
+    {
+      "slot_id": "r4_west_1",
+      "round": 4,
+      "region": "West",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r5_semi2"
+    },
+    {
+      "slot_id": "r4_south_1",
+      "round": 4,
+      "region": "South",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r5_semi1"
+    },
+    {
+      "slot_id": "r4_midwest_1",
+      "round": 4,
+      "region": "Midwest",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "r5_semi2"
+    },
+    {
+      "slot_id": "r5_semi1",
+      "round": 5,
+      "region": "Final Four",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "championship"
+    },
+    {
+      "slot_id": "r5_semi2",
+      "round": 5,
+      "region": "Final Four",
+      "position": 2,
+      "top_team": null,
+      "bottom_team": null,
       "feeds_into": "championship"
     },
     {
       "slot_id": "championship",
-      "round": 3,
+      "round": 6,
       "region": "Final Four",
       "position": 1,
       "top_team": null,

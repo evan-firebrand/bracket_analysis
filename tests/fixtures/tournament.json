@@ -1,0 +1,78 @@
+{
+  "year": 2026,
+  "teams": {
+    "duke": {"name": "Duke", "seed": 1, "region": "East"},
+    "unc": {"name": "North Carolina", "seed": 2, "region": "East"},
+    "gonzaga": {"name": "Gonzaga", "seed": 3, "region": "East"},
+    "purdue": {"name": "Purdue", "seed": 4, "region": "East"},
+    "houston": {"name": "Houston", "seed": 1, "region": "West"},
+    "tennessee": {"name": "Tennessee", "seed": 2, "region": "West"},
+    "alabama": {"name": "Alabama", "seed": 3, "region": "West"},
+    "arizona": {"name": "Arizona", "seed": 4, "region": "West"}
+  },
+  "slots": [
+    {
+      "slot_id": "r1_east_1v4",
+      "round": 1,
+      "region": "East",
+      "position": 1,
+      "top_team": "duke",
+      "bottom_team": "purdue",
+      "feeds_into": "r2_east_1"
+    },
+    {
+      "slot_id": "r1_east_2v3",
+      "round": 1,
+      "region": "East",
+      "position": 2,
+      "top_team": "unc",
+      "bottom_team": "gonzaga",
+      "feeds_into": "r2_east_1"
+    },
+    {
+      "slot_id": "r1_west_1v4",
+      "round": 1,
+      "region": "West",
+      "position": 1,
+      "top_team": "houston",
+      "bottom_team": "arizona",
+      "feeds_into": "r2_west_1"
+    },
+    {
+      "slot_id": "r1_west_2v3",
+      "round": 1,
+      "region": "West",
+      "position": 2,
+      "top_team": "tennessee",
+      "bottom_team": "alabama",
+      "feeds_into": "r2_west_1"
+    },
+    {
+      "slot_id": "r2_east_1",
+      "round": 2,
+      "region": "East",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "championship"
+    },
+    {
+      "slot_id": "r2_west_1",
+      "round": 2,
+      "region": "West",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": "championship"
+    },
+    {
+      "slot_id": "championship",
+      "round": 6,
+      "region": "Final Four",
+      "position": 1,
+      "top_team": null,
+      "bottom_team": null,
+      "feeds_into": null
+    }
+  ]
+}
