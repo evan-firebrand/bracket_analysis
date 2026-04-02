@@ -18,6 +18,9 @@ from core.narrative import describe_probability, ordinal
 from core.scenarios import (
     _get_win_probability,
     _resolve_participants,
+    best_path,
+    clinch_scenarios,
+    player_critical_games,
     run_scenarios,
 )
 from core.scoring import ROUND_NAMES, score_entry
@@ -58,6 +61,7 @@ def render(ctx: AnalysisContext):
     _render_how_this_ends(ctx)
     _render_critical_games(ctx, scenario_results)
     _render_finish_distributions(ctx, scenario_results)
+    _render_path_to_win(ctx, scenario_results)
 
 
 def _render_win_probabilities(ctx, sr):
@@ -505,6 +509,128 @@ def _render_finish_distributions(ctx, sr):
             f"**{player}** finishes 1st in **{win_pct:.1%}** of scenarios, "
             f"top 3 in **{podium:.1%}**."
         )
+
+
+def _render_path_to_win(ctx: AnalysisContext, sr) -> None:
+    """Player-centric section: what needs to happen for this player to win?"""
+    st.subheader("\U0001f3af What Needs to Happen for You to Win?")
+
+    player_names = ctx.player_names()
+    if not player_names:
+        return
+
+    # Default to rank-1 player (no config dependency)
+    default_player = ctx.leaderboard.iloc[0]["Player"] if len(ctx.leaderboard) > 0 else player_names[0]
+    default_idx = player_names.index(default_player) if default_player in player_names else 0
+
+    if len(player_names) <= 4:
+        player = st.radio(
+            "Select a player",
+            player_names,
+            index=default_idx,
+            horizontal=True,
+            key="path_to_win_player",
+        )
+    else:
+        player = st.selectbox(
+            "Select a player",
+            player_names,
+            index=default_idx,
+            key="path_to_win_player",
+        )
+
+    if not player:
+        return
+
+    # --- Elimination check ---
+    if sr.is_eliminated.get(player, False):
+        st.warning(
+            f"\u26a0\ufe0f **{player}** has been eliminated from contention. "
+            "No combination of remaining results can overcome the current gap."
+        )
+        return
+
+    # --- Clinch detection ---
+    odds = _load_odds()
+    clinch = clinch_scenarios(ctx.entries, player, ctx.tournament, ctx.results)
+
+    if clinch["clinched"]:
+        st.success(f"\U0001f3c6 **{player} has already clinched first place!**")
+        return
+
+    if clinch["clinch_outcomes"]:
+        st.success("\U0001f3c6 **Guaranteed Win** — these outcomes lock up 1st place:")
+        for outcome in clinch["clinch_outcomes"]:
+            sid = outcome["slot_id"]
+            winner = outcome["required_winner"]
+            slot = ctx.tournament.slots.get(sid)
+            round_name = ROUND_NAMES.get(slot.round, "") if slot else ""
+            # Find the opponent from remaining games
+            scored = ctx.get_scored(player)
+            other = None
+            if scored:
+                for g in get_remaining_slots(ctx.tournament, ctx.results):
+                    if g == sid:
+                        from core.tournament import get_participants_for_slot
+                        ta, tb = get_participants_for_slot(ctx.tournament, ctx.results, sid)
+                        other = tb if winner == ta else ta
+                        break
+            if other:
+                st.markdown(
+                    f"  - Root for **{ctx.team_name(winner)}** over "
+                    f"**{ctx.team_name(other)}** in the {round_name}"
+                )
+            else:
+                st.markdown(f"  - Root for **{ctx.team_name(winner)}** in the {round_name}")
+
+    # --- Best path ---
+    path = best_path(sr, player, ctx.entries, ctx.tournament, ctx.results, odds)
+
+    if path["steps"]:
+        st.markdown(
+            f"\U0001f3af **Your Best Path** "
+            f"(Win probability: {path['win_probability']:.1%} | "
+            f"Path likelihood: {path['path_probability']:.1%})"
+        )
+        for i, step in enumerate(path["steps"], 1):
+            slot = ctx.tournament.slots.get(step["slot_id"])
+            round_name = ROUND_NAMES.get(slot.round, "") if slot else ""
+            st.markdown(
+                f"  {i}. Root for **{ctx.team_name(step['root_for'])}** "
+                f"to beat **{ctx.team_name(step['opponent'])}** — {round_name}"
+            )
+        if path["odds_source"] in ("seed_historical", "coin_flip"):
+            st.caption(
+                f"Path likelihood based on {path['odds_source'].replace('_', ' ')} "
+                "(no betting odds available for these games)"
+            )
+    else:
+        st.markdown("\U0001f3af **Your Best Path** — all remaining outcomes are equivalent for you.")
+
+    # --- Critical games (player-centric) ---
+    pcg = player_critical_games(sr, player, top_n=5)
+    if pcg:
+        st.markdown("\u26a1 **Games That Matter Most to You**")
+
+        # Must-win games first
+        must_win = [g for g in pcg if g["must_win_team"]]
+        others = [g for g in pcg if not g["must_win_team"]]
+        sorted_games = must_win + others
+
+        for game in sorted_games:
+            slot = ctx.tournament.slots.get(game["slot_id"])
+            round_name = ROUND_NAMES.get(slot.round, "") if slot else ""
+            team_a_name = ctx.team_name(game["team_a"])
+            team_b_name = ctx.team_name(game["team_b"])
+
+            badge = "\U0001f534 **Must Win** " if game["must_win_team"] else ""
+            st.markdown(
+                f"{badge}**{team_a_name}** vs **{team_b_name}** — {round_name}"
+            )
+            st.markdown(
+                f"  Your win%: **{game['win_if_a']:.1%}** if {team_a_name} wins "
+                f"| **{game['win_if_b']:.1%}** if {team_b_name} wins"
+            )
 
 
 def summarize(ctx: AnalysisContext) -> str | None:
