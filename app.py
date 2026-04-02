@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
-import yaml
 import streamlit as st
+import yaml
 
 from analyses import discover_plugins, get_plugins_by_category
 from core.context import AnalysisContext
@@ -137,11 +137,6 @@ def _render_home(ctx: AnalysisContext, plugins):
     sr = ctx.scenario_results
     total_scenarios = sr.total_scenarios if sr else 0
 
-    # Compute min score per player for clinch check
-    min_scores = {
-        name: scored.total_points
-        for name, scored in ctx.scored_entries.items()
-    }
     max_possibles = {
         name: scored.max_possible
         for name, scored in ctx.scored_entries.items()
