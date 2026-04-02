@@ -15,6 +15,7 @@ from core.comparison import (
     compare_counterfactual,
     contrarian_picks,
     counterfactual_entry,
+    find_best_swaps,
     group_chalk_score,
     head_to_head,
     pick_popularity,
@@ -359,4 +360,57 @@ class TestCompareCounterfactual:
                 entries, "NonexistentPlayer",
                 {"r2_west_1": "alabama"},
                 tournament, results,
+            )
+
+
+class TestFindBestSwaps:
+    """Tests for find_best_swaps() — WI-4."""
+
+    def test_returns_ranked_list(self, tournament, results, entries):
+        """Should return swaps sorted by delta descending."""
+        swaps = find_best_swaps(entries, "Alice", tournament, results)
+
+        assert isinstance(swaps, list)
+        assert len(swaps) > 0
+        # Sorted by delta descending
+        for i in range(len(swaps) - 1):
+            assert swaps[i]["delta"] >= swaps[i + 1]["delta"]
+
+    def test_swap_has_required_keys(self, tournament, results, entries):
+        """Each swap dict should contain all required keys."""
+        swaps = find_best_swaps(entries, "Alice", tournament, results)
+        required = {"slot_id", "round", "old_team", "new_team",
+                     "original_pct", "new_pct", "delta"}
+
+        for swap in swaps:
+            assert required.issubset(swap.keys())
+
+    def test_only_pending_slots(self, tournament, results, entries):
+        """Swaps should only be for pending (unplayed) slots."""
+        swaps = find_best_swaps(entries, "Alice", tournament, results)
+        completed = set(results.results.keys())
+
+        for swap in swaps:
+            assert swap["slot_id"] not in completed
+
+    def test_no_swap_to_same_team(self, tournament, results, entries):
+        """Should never suggest swapping to the team already picked."""
+        alice = _get_entry(entries, "Alice")
+        swaps = find_best_swaps(entries, "Alice", tournament, results)
+
+        for swap in swaps:
+            assert swap["new_team"] != alice.picks[swap["slot_id"]]
+
+    def test_max_swaps_respected(self, tournament, results, entries):
+        """Should return at most max_swaps results."""
+        swaps = find_best_swaps(
+            entries, "Alice", tournament, results, max_swaps=1,
+        )
+        assert len(swaps) <= 1
+
+    def test_unknown_player_raises(self, tournament, results, entries):
+        """Should raise ValueError for unknown player."""
+        with pytest.raises(ValueError, match="not found in entries"):
+            find_best_swaps(
+                entries, "NonexistentPlayer", tournament, results,
             )
