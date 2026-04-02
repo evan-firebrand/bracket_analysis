@@ -33,6 +33,11 @@ def counterfactual_entry(
     Returns:
         A new PlayerEntry with modified picks.
     """
+    if propagate and tournament is None:
+        raise ValueError(
+            "tournament is required when propagate=True"
+        )
+
     new_picks = dict(entry.picks)
 
     if propagate and tournament:
@@ -100,7 +105,14 @@ def compare_counterfactual(
     )
 
     # Build counterfactual entry
-    entry = next(e for e in entries if e.player_name == player_name)
+    entry = next(
+        (e for e in entries if e.player_name == player_name),
+        None,
+    )
+    if entry is None:
+        raise ValueError(
+            f"Player '{player_name}' not found in entries"
+        )
     cf_entry = counterfactual_entry(entry, pick_overrides, tournament, propagate)
 
     # Replace entry in list
@@ -124,6 +136,7 @@ def compare_counterfactual(
         "original_results": original_sr,
         "counterfactual_results": cf_sr,
     }
+
 
 # --- Head to Head ---
 
