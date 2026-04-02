@@ -103,4 +103,90 @@ Both are 4th and 5th at 440 points, but their paths are narrow. Rebecca's best h
 
 ---
 
-*Fifteen games to go. Five players still alive. One has a 56% edge. The Sweet 16 will tell us a lot.*
+## The Major Scenarios
+
+The pool's outcome hinges on two teams: Duke and Arizona. Every other result is noise by comparison.
+
+### Scenario 1: The Duke Question (the single biggest swing in the pool)
+
+Duke is picked as champion by 4 of 7 players. Their Elite 8 matchup (likely vs UConn) is the most consequential game of the tournament for this pool.
+
+| | Duke Makes FF | UConn Beats Duke in E8 | Swing |
+|---|---|---|---|
+| **Hugh1778** | 20% | **88%** | **+68pp** |
+| **Evan** | **52%** | 4% | **-48pp** |
+| **Hugh452871778** | 18% | 1% | -16pp |
+| **Rebecca** | 8% | 6% | -2pp |
+| **scrapr** | 2% | 1% | -1pp |
+
+If Duke makes the Final Four, Evan becomes the favorite at 52% — his Duke champion pick gives him a massive scoring runway. If UConn knocks Duke out in the Elite 8, Hugh1778 jumps to **88% — near certainty** — because every other contender's championship pick is dead.
+
+**This one game is a 68-percentage-point swing for Hugh1778.** It's the most leveraged single result in the entire tournament for the pool.
+
+### Scenario 2: Arizona's Run (Hugh1778's insurance policy)
+
+Arizona is Hugh1778's champion pick — the only unique champion pick in the pool. Arizona's fate matters, but less than Duke's because Hugh1778 is already favored regardless.
+
+| | Arizona Makes FF | Arizona Out in S16 | Swing |
+|---|---|---|---|
+| **Hugh1778** | **64%** | 52% | -12pp |
+| **Evan** | 20% | 24% | +5pp |
+| **scrapr** | 0% | **11%** | +11pp |
+| **Rebecca** | 9% | 3% | -7pp |
+
+Interesting: if Arizona goes out, scrapr jumps from dead to 11%. scrapr picked Michigan to go deep on the other side of that bracket and benefits from Arizona's exit opening up the West.
+
+### Scenario 3: The Dream Matchup — Duke vs Arizona Final
+
+If both Duke AND Arizona reach the Final Four, it becomes a true two-horse race:
+
+| Player | Win % |
+|--------|-------|
+| Evan | **42%** |
+| Hugh1778 | 34% |
+| Hugh452871778 | 14% |
+| Rebecca | 10% |
+
+Evan becomes the slight favorite because Duke's path generates more total points for him across the bracket (he correctly called more of Duke's early-round opponents). This is the most competitive scenario — four players with a real shot.
+
+### Scenario 4: The Chaos — Both Duke and Arizona Out by Elite 8
+
+If both marquee teams fall:
+
+| Player | Win % |
+|--------|-------|
+| Hugh1778 | **88%** |
+| Rebecca | 6% |
+| Evan | 4% |
+| Hugh452871778 | 2% |
+
+Every champion pick is dead. Hugh1778 wins by sheer accumulation of earlier-round points and mid-bracket picks. The pool is effectively over.
+
+### The Sweet 16 Swing Games
+
+Ranked by how much they swing the pool's outcome:
+
+| Game | Biggest Swing | Who Cares Most |
+|------|--------------|----------------|
+| **Michigan vs Alabama** | **55pp** | Hugh1778 goes from 28% → 84% if Alabama wins (he picked Alabama). Michigan win keeps it competitive. |
+| **Tennessee vs Iowa St.** | **29pp** | Evan goes from 9% → 38% if Iowa St. wins. Hugh452871778 drops from 18% → 0%. |
+| **Duke vs St. John's** | 19pp | Hugh1778 gains 19pp if St. John's upsets Duke. Everyone else needs Duke. |
+| **Michigan St. vs UConn** | 16pp | Sets up the Duke E8 opponent. UConn win is worse for the field (tougher Duke matchup). |
+| **Illinois vs Houston** | 18pp | Hugh452871778 drops from 18% → 0% if Houston wins. Rebecca also needs Illinois. |
+| **Arizona vs Arkansas** | 10pp | scrapr's only path runs through an Arkansas upset. |
+| **Iowa vs Nebraska** | 0pp | **Dead game.** Everyone picked Florida here. Zero impact on the pool. |
+| **Texas vs Purdue** | 0pp | **Dead game.** Everyone picked Gonzaga. Zero impact. |
+
+The Michigan/Alabama game is the Sweet 16's biggest swing — a 55-point probability shift for Hugh1778 alone. But it's the Elite 8 Duke/UConn game that will define the entire pool.
+
+---
+
+## The Story Ahead
+
+The pool comes down to one fundamental question: **Does Duke survive to the Final Four?**
+
+If yes — Evan, Hugh452871778, Rebecca, and scrapr all stay alive, and Evan likely becomes the favorite. The pool stays competitive through the championship game.
+
+If no — Hugh1778 runs away with it at 88%, and the only drama left is whether anyone can cobble together enough mid-round points to catch him. The pool is functionally over by the Elite 8.
+
+*Fifteen games to go. Five players still alive. One has a 56% edge. The Sweet 16 starts tomorrow — and it will tell us everything.*
