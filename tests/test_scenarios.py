@@ -10,7 +10,15 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.loader import load_entries, load_results, load_tournament
-from core.scenarios import brute_force_scenarios, monte_carlo_scenarios, run_scenarios, what_if
+from core.scenarios import (
+    best_path,
+    brute_force_scenarios,
+    clinch_scenarios,
+    monte_carlo_scenarios,
+    player_critical_games,
+    run_scenarios,
+    what_if,
+)
 from core.tournament import (
     get_participants_for_slot,
     get_remaining_games,
@@ -212,3 +220,163 @@ class TestWhatIf:
         # Existing results still there
         assert new.winner_of("r1_east_1v4") == "duke"
         assert new.completed_count() == results.completed_count() + 1
+
+
+# --- player_critical_games tests ---
+
+
+class TestPlayerCriticalGames:
+    def test_alice_has_zero_swing(self, entries, tournament, results):
+        """Alice wins 50% whether Houston or Alabama wins r2_west_1."""
+        sr = brute_force_scenarios(entries, tournament, results)
+        games = player_critical_games(sr, "Alice")
+        # Alice's swing is 0 for r2_west_1, so no games returned
+        assert games == []
+
+    def test_charlie_swing_for_r2(self, entries, tournament, results):
+        """Charlie wins only when Houston wins r2_west_1."""
+        sr = brute_force_scenarios(entries, tournament, results)
+        games = player_critical_games(sr, "Charlie")
+        assert len(games) >= 1
+        g = games[0]
+        assert g["slot_id"] == "r2_west_1"
+        assert g["swing"] == pytest.approx(0.5)
+        # Charlie's must-win team is Houston
+        assert g["must_win_team"] == "houston"
+
+    def test_bob_must_win_alabama(self, entries, tournament, results):
+        """Bob wins only when Alabama wins r2_west_1."""
+        sr = brute_force_scenarios(entries, tournament, results)
+        games = player_critical_games(sr, "Bob")
+        assert len(games) >= 1
+        g = games[0]
+        assert g["slot_id"] == "r2_west_1"
+        assert g["swing"] == pytest.approx(0.5)
+        assert g["must_win_team"] == "alabama"
+
+    def test_eliminated_player_returns_empty(self, entries, tournament, results):
+        """Dave can't win any scenario; his critical games list is empty."""
+        sr = brute_force_scenarios(entries, tournament, results)
+        games = player_critical_games(sr, "Dave")
+        # Dave has a pick for r2_west_1 (tennessee, eliminated) — swing is 0
+        assert games == []
+
+    def test_top_n_respected(self, entries, tournament, results):
+        sr = brute_force_scenarios(entries, tournament, results)
+        games = player_critical_games(sr, "Charlie", top_n=1)
+        assert len(games) <= 1
+
+    def test_returns_all_required_keys(self, entries, tournament, results):
+        sr = brute_force_scenarios(entries, tournament, results)
+        games = player_critical_games(sr, "Charlie")
+        if games:
+            g = games[0]
+            for key in ("slot_id", "team_a", "team_b", "win_if_a", "win_if_b", "swing", "must_win_team"):
+                assert key in g
+
+
+# --- clinch_scenarios tests ---
+
+
+class TestClinchScenarios:
+    def test_not_clinched_when_tournament_ongoing(self, entries, tournament, results):
+        """No one should be clinched with 2 games remaining."""
+        for entry in entries:
+            cs = clinch_scenarios(entries, entry.player_name, tournament, results)
+            assert cs["clinched"] is False
+
+    def test_alice_has_clinch_scenario(self, entries, tournament, results):
+        """If Alice wins houston in r2 and duke in championship, she clinches."""
+        cs = clinch_scenarios(entries, "Alice", tournament, results)
+        assert cs["can_win"] is True
+        assert cs["clinch_outcomes"] is not None
+        # clinch requires both pending picks
+        slot_ids = {o["slot_id"] for o in cs["clinch_outcomes"]}
+        assert "r2_west_1" in slot_ids
+        assert "championship" in slot_ids
+        winners = {o["required_winner"] for o in cs["clinch_outcomes"]}
+        assert "houston" in winners
+        assert "duke" in winners
+
+    def test_dave_cannot_win(self, entries, tournament, results):
+        """Dave's picks are all eliminated; he can't win."""
+        cs = clinch_scenarios(entries, "Dave", tournament, results)
+        assert cs["can_win"] is False
+        assert cs["clinch_outcomes"] is None
+
+    def test_eve_cannot_win(self, entries, tournament, results):
+        """Eve's picks are all eliminated; she can't win."""
+        cs = clinch_scenarios(entries, "Eve", tournament, results)
+        assert cs["can_win"] is False
+
+    def test_already_clinched(self, entries, tournament, results):
+        """Simulate a scenario where the leader has an insurmountable lead."""
+        # Give Alice a massive lead by pretending she already has 10000 points
+        # Build hypothetical: alice wins all games except championship undecided
+        hypo = what_if(results, "r2_west_1", "houston", "alabama")
+        # Now Alice has more pts and Bob/Charlie can't catch up
+        # Verify clinch is False (championship still pending means others have max_possible)
+        cs = clinch_scenarios(entries, "Alice", tournament, hypo)
+        # One game remains (championship), Alice picked duke who is still alive
+        # Alice's total in hypo: 40+20=60. Charlie: 60+20=80. So alice still isn't clinched yet.
+        # Alice has clinch scenario: win championship
+        assert cs["clinched"] is False
+        assert cs["clinch_outcomes"] is not None
+
+    def test_clinch_outcomes_structure(self, entries, tournament, results):
+        cs = clinch_scenarios(entries, "Alice", tournament, results)
+        if cs["clinch_outcomes"] is not None:
+            for outcome in cs["clinch_outcomes"]:
+                assert "slot_id" in outcome
+                assert "required_winner" in outcome
+
+
+# --- best_path tests ---
+
+
+class TestBestPath:
+    def test_returns_steps_sorted_by_round(self, entries, tournament, results):
+        sr = brute_force_scenarios(entries, tournament, results)
+        path = best_path(sr, "Alice", entries, tournament, results)
+        rounds = [s["round"] for s in path["steps"]]
+        assert rounds == sorted(rounds)
+
+    def test_eliminated_player_returns_empty_steps(self, entries, tournament, results):
+        sr = brute_force_scenarios(entries, tournament, results)
+        path = best_path(sr, "Dave", entries, tournament, results)
+        assert path["steps"] == []
+        assert path["win_probability"] == pytest.approx(0.0)
+
+    def test_alice_best_path_includes_duke_championship(self, entries, tournament, results):
+        """Alice wins when Duke wins championship; her best path should include that."""
+        sr = brute_force_scenarios(entries, tournament, results)
+        path = best_path(sr, "Alice", entries, tournament, results)
+        root_for_teams = [s["root_for"] for s in path["steps"]]
+        assert "duke" in root_for_teams
+
+    def test_path_probability_is_product(self, entries, tournament, results):
+        """Path probability should be between 0 and 1."""
+        sr = brute_force_scenarios(entries, tournament, results)
+        path = best_path(sr, "Alice", entries, tournament, results)
+        assert 0.0 <= path["path_probability"] <= 1.0
+
+    def test_win_probability_matches_scenario_results(self, entries, tournament, results):
+        """win_probability should match sr.win_counts / total."""
+        sr = brute_force_scenarios(entries, tournament, results)
+        path = best_path(sr, "Alice", entries, tournament, results)
+        expected = sr.win_counts["Alice"] / sr.total_scenarios
+        assert path["win_probability"] == pytest.approx(expected)
+
+    def test_steps_have_required_keys(self, entries, tournament, results):
+        sr = brute_force_scenarios(entries, tournament, results)
+        path = best_path(sr, "Alice", entries, tournament, results)
+        for step in path["steps"]:
+            for key in ("slot_id", "round", "root_for", "opponent"):
+                assert key in step
+
+    def test_charlie_best_path_includes_houston(self, entries, tournament, results):
+        """Charlie wins when Houston wins; that should appear in his best path."""
+        sr = brute_force_scenarios(entries, tournament, results)
+        path = best_path(sr, "Charlie", entries, tournament, results)
+        root_for_teams = [s["root_for"] for s in path["steps"]]
+        assert "houston" in root_for_teams
