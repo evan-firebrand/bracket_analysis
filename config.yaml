@@ -2,6 +2,9 @@
 
 data_dir: "data"
 
+app:
+  my_player_name: ""  # set to your display name to highlight your row on the home screen
+
 # Data sources (for reference — data is maintained manually)
 sources:
   espn_group: "https://fantasy.espn.com/games/tournament-challenge-bracket-2026/group?id=5c58b8ab-f641-4c0a-8508-461911cc542f"
