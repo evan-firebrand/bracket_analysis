@@ -12,7 +12,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from core.comparison import (
     agreement_matrix,
     chalk_score,
+    compare_counterfactual,
     contrarian_picks,
+    counterfactual_entry,
     group_chalk_score,
     head_to_head,
     pick_popularity,
@@ -180,3 +182,120 @@ class TestChalkScore:
         group = group_chalk_score(entries, tournament)
         expected = sum(individual.values()) / len(individual)
         assert abs(group - expected) < 0.001
+
+
+class TestCounterfactualEntry:
+    """Tests for counterfactual_entry() — WI-1 and WI-2."""
+
+    def test_single_swap_no_propagation(self, tournament, entries):
+        """Basic swap: change one pick, no cascading."""
+        alice = _get_entry(entries, "Alice")
+        cf = counterfactual_entry(alice, {"r2_west_1": "alabama"})
+
+        assert cf.picks["r2_west_1"] == "alabama"
+        assert cf.player_name == "Alice"
+
+    def test_original_not_mutated(self, tournament, entries):
+        """Original entry must be unchanged after creating counterfactual."""
+        alice = _get_entry(entries, "Alice")
+        original_picks = dict(alice.picks)
+        counterfactual_entry(alice, {"r2_west_1": "alabama"})
+
+        assert alice.picks == original_picks
+
+    def test_unmodified_picks_preserved(self, tournament, entries):
+        """Picks not in overrides should be unchanged."""
+        alice = _get_entry(entries, "Alice")
+        cf = counterfactual_entry(alice, {"r2_west_1": "alabama"})
+
+        assert cf.picks["r1_east_1v4"] == alice.picks["r1_east_1v4"]
+        assert cf.picks["championship"] == alice.picks["championship"]
+        assert cf.picks["r2_east_1"] == alice.picks["r2_east_1"]
+
+    def test_propagation_cascades_downstream(self, tournament, entries):
+        """Swap r2_west_1 from houston to alabama should cascade championship
+        when championship was houston (Charlie's bracket)."""
+        charlie = _get_entry(entries, "Charlie")
+        assert charlie.picks["r2_west_1"] == "houston"
+        assert charlie.picks["championship"] == "houston"
+
+        cf = counterfactual_entry(
+            charlie, {"r2_west_1": "alabama"}, tournament, propagate=True,
+        )
+
+        assert cf.picks["r2_west_1"] == "alabama"
+        assert cf.picks["championship"] == "alabama"  # cascaded
+
+    def test_propagation_no_cascade_when_different_team(self, tournament, entries):
+        """Swap r2_west_1 should NOT cascade championship when championship
+        is a different team (Alice: championship=duke, not houston)."""
+        alice = _get_entry(entries, "Alice")
+        assert alice.picks["r2_west_1"] == "houston"
+        assert alice.picks["championship"] == "duke"
+
+        cf = counterfactual_entry(
+            alice, {"r2_west_1": "alabama"}, tournament, propagate=True,
+        )
+
+        assert cf.picks["r2_west_1"] == "alabama"
+        assert cf.picks["championship"] == "duke"  # unchanged
+
+    def test_no_propagation_leaves_downstream_unchanged(self, tournament, entries):
+        """Without propagate=True, downstream picks are not cascaded."""
+        charlie = _get_entry(entries, "Charlie")
+
+        cf = counterfactual_entry(
+            charlie, {"r2_west_1": "alabama"}, tournament, propagate=False,
+        )
+
+        assert cf.picks["r2_west_1"] == "alabama"
+        assert cf.picks["championship"] == "houston"  # not cascaded
+
+    def test_scoreable(self, tournament, results, entries):
+        """Counterfactual entry should be scoreable with score_entry()."""
+        from core.scoring import score_entry
+
+        alice = _get_entry(entries, "Alice")
+        cf = counterfactual_entry(alice, {"r2_west_1": "alabama"})
+
+        scored = score_entry(cf, tournament, results)
+        assert scored.total_points >= 0
+        assert scored.player_name == "Alice"
+
+
+class TestCompareCounterfactual:
+    """Tests for compare_counterfactual() — WI-3."""
+
+    def test_returns_comparison(self, tournament, results, entries):
+        """Should return original and counterfactual win percentages."""
+        result = compare_counterfactual(
+            entries, "Alice", {"r2_west_1": "alabama"},
+            tournament, results,
+        )
+
+        assert "original_pct" in result
+        assert "counterfactual_pct" in result
+        assert "delta" in result
+        assert "original_results" in result
+        assert "counterfactual_results" in result
+
+    def test_delta_is_difference(self, tournament, results, entries):
+        """Delta should equal counterfactual_pct - original_pct."""
+        result = compare_counterfactual(
+            entries, "Alice", {"r2_west_1": "alabama"},
+            tournament, results,
+        )
+
+        expected_delta = result["counterfactual_pct"] - result["original_pct"]
+        assert abs(result["delta"] - expected_delta) < 0.01
+
+    def test_identical_swap_no_change(self, tournament, results, entries):
+        """Swapping to the same team should produce zero delta."""
+        alice = _get_entry(entries, "Alice")
+        result = compare_counterfactual(
+            entries, "Alice",
+            {"r2_west_1": alice.picks["r2_west_1"]},
+            tournament, results,
+        )
+
+        assert abs(result["delta"]) < 0.01
