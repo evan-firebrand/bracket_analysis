@@ -2,58 +2,72 @@
 
 ## What is this repo?
 
-NCAA tournament bracket analysis app. Contains tournament data (teams, results, bracket picks, odds) and tools to analyze, score, and compare brackets.
+NCAA tournament bracket analysis app. Scores bracket picks, compares players head-to-head, runs scenario simulations (brute-force + Monte Carlo), and presents everything in a Streamlit web UI. Data collected from ESPN and DraftKings.
 
 ## Key things to know
 
+- **Analysis layer**: `core/` contains pure Python scoring, scenario engines, comparisons, and data loading. No Streamlit imports.
+- **Plugin system**: `analyses/` has auto-discovered Streamlit plugins (presentation only — business logic goes in `core/`).
+- **Web UI**: `app.py` is the Streamlit entry point. Loads `AnalysisContext` and renders plugins.
 - **Data contract**: `docs/DATA_CONTRACT.md` defines exact schemas. All data uses team slugs and slot IDs.
-- **Data files are tracked in git**: `data/tournament.json`, `data/results.json`, `data/odds.json`, `data/entries/player_brackets.json`
-- **Data was manually collected**: Brackets from ESPN + NCAA screenshot extraction, results from bracket images, odds from DraftKings screenshots. No automated scraping.
-- **ESPN group URL**: Configured in `config.yaml` under `sources.espn_group`. Currently targets Rebecca's bracket.
-- **NCAA support**: Deferred. Only ESPN is implemented.
-
-- **DATA INTEGRITY IS CRITICAL**: Never use fake data or make guesses. All data must be verified against official sources\*\*
+- **Data files**: `data/tournament.json`, `data/results.json`, `data/odds.json`, `data/entries/player_brackets.json` — tracked in git.
+- **ESPN bracket fetching**: `src/extract_bracket.py` uses Playwright DOM extraction. Requires `ANTHROPIC_API_KEY`.
+- **CI**: Ruff lint + pytest + PR validation on every PR to main.
 
 ## How to run
 
 ```bash
 pip install -r requirements.txt
-# Validate data integrity
-python scripts/validate_data.py
-# Verify scores via point tallies
-python scripts/verify_points.py
+streamlit run app.py                    # launch web UI
+pytest                                  # run tests
+ruff check .                            # lint
+python scripts/validate_data.py         # validate data integrity
+python scripts/run_scenarios.py         # CLI scenario analysis
+python scripts/fetch_espn_bracket.py    # fetch bracket from ESPN (needs ANTHROPIC_API_KEY)
 ```
-
-## How to update data
-
-1. Edit the relevant JSON file in `data/`
-2. Run `python scripts/validate_data.py` to check integrity
-3. Run `python scripts/verify_points.py` to sanity-check scores
 
 ## How to extend
 
-To add a new data source or scraping target:
+To add a new analysis plugin:
+1. Create `analyses/<name>.py` with required attrs: `TITLE`, `DESCRIPTION`, `CATEGORY`, `ORDER`, `ICON`, `render(ctx)`
+2. Put business logic in `core/` — plugins are presentation only
+3. The plugin auto-discovers on app restart
 
-1. Create `src/fetch_<thing>.py` following the pattern in existing modules
-2. Write a detailed prompt telling Claude what to navigate and extract
-3. Save with `storage.save_*()` or add a new save function
+To add a new data source:
+1. Create a script in `scripts/`
+2. Use `src/storage.py` for reading/writing data files
+3. Follow schemas in `docs/DATA_CONTRACT.md`
 
 ## Project structure
 
 ```
-src/models.py         — Prompt schema helpers (aligned with docs/DATA_CONTRACT.md)
-src/storage.py        — JSON file read/write
-scripts/              — CLI tools (validation, verification)
-config.yaml           — All configuration
-data/                 — Tournament data (tracked in git)
-docs/DATA_CONTRACT.md — Data schema definitions
+core/scoring.py        — ESPN scoring (10/20/40/80/160/320 per round)
+core/scenarios.py      — Brute-force + Monte Carlo scenario engines
+core/tournament.py     — Game tree traversal, remaining slots, team paths
+core/comparison.py     — H2H diffs, pick popularity, chalk scores
+core/context.py        — Central data object (loads + caches everything)
+core/loader.py         — Data loading + bracket tree validation
+core/models.py         — Dataclasses (Team, GameSlot, Results, PlayerEntry, etc.)
+core/narrative.py      — Template-based text descriptions
+analyses/              — Auto-discovered Streamlit plugins (presentation only)
+app.py                 — Streamlit web UI entry point
+src/extract_bracket.py — ESPN bracket extraction via Playwright DOM
+src/models.py          — Prompt schema helpers
+src/storage.py         — JSON file read/write
+scripts/               — CLI: validation, scenarios, bracket fetching, CI scripts
+tests/                 — pytest test suite
+docs/DATA_CONTRACT.md  — Data schemas
+config.yaml            — Configuration
+pyproject.toml         — pytest + ruff config
+.github/workflows/     — CI pipeline (lint, test, PR validation, review checklist)
 ```
 
 ## Important constraints
 
-- Requires `ANTHROPIC_API_KEY` environment variable for any agent-based fetching
-- ESPN is a JS SPA — cannot be scraped with simple HTTP requests
-- Set `browser.headless: false` in config.yaml to watch the browser during development
+- Requires `ANTHROPIC_API_KEY` environment variable for ESPN bracket fetching (not needed for analysis/UI)
+- ESPN is a JS SPA — bracket fetching uses Playwright DOM extraction
+- CI requires `ruff check` + `pytest` to pass before merge
+- PR descriptions must include 6 required sections (see PR conventions below)
 
 ## PR conventions
 

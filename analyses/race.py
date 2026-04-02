@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import pandas as pd
-import streamlit as st
-
 import json
 from pathlib import Path
+
+import pandas as pd
+import streamlit as st
 
 from core.context import AnalysisContext
 from core.models import GameResult, Results
@@ -354,6 +354,7 @@ def _render_probability_arc(ctx: AnalysisContext, history: dict):
         st.dataframe(pd.DataFrame(table_data), hide_index=True, use_container_width=True)
 
 
+
 def _render_key_moments(ctx):
     """Show the most impactful games — bracket busters and turning points."""
     moments = _build_key_moments(ctx)
@@ -477,7 +478,6 @@ def _render_elimination_moments(ctx):
 
         # Find the last game that destroyed points for this player
         last_hit_slot = None
-        last_hit_loser = None
         last_hit_destroyed = 0
 
         for slot_id in game_order:
@@ -493,7 +493,6 @@ def _render_elimination_moments(ctx):
 
             if destroyed > 0:
                 last_hit_slot = slot_id
-                last_hit_loser = loser
                 last_hit_destroyed = destroyed
 
         if last_hit_slot:
