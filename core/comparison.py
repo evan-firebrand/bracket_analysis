@@ -11,6 +11,121 @@ from dataclasses import dataclass
 from core.models import PlayerEntry, Results, TournamentStructure
 from core.scoring import POINTS_PER_ROUND, get_alive_teams
 
+
+# --- Counterfactual Entry ---
+
+
+def counterfactual_entry(
+    entry: PlayerEntry,
+    pick_overrides: dict[str, str],
+    tournament: TournamentStructure | None = None,
+    propagate: bool = False,
+) -> PlayerEntry:
+    """Create a modified copy of a player's bracket with pick swaps.
+
+    Args:
+        entry: The original player entry (not mutated).
+        pick_overrides: Map of slot_id -> new team slug.
+        tournament: Required when propagate=True, used to determine
+            slot rounds for downstream cascading.
+        propagate: If True, cascade changes to downstream slots where
+            the player originally picked the replaced team.
+
+    Returns:
+        A new PlayerEntry with modified picks.
+    """
+    new_picks = dict(entry.picks)
+
+    if propagate and tournament:
+        # Process overrides in round order so earlier swaps cascade first
+        sorted_overrides = sorted(
+            pick_overrides.items(),
+            key=lambda item: tournament.slots[item[0]].round
+            if item[0] in tournament.slots
+            else 0,
+        )
+        for slot_id, new_team in sorted_overrides:
+            old_team = new_picks.get(slot_id)
+            new_picks[slot_id] = new_team
+
+            if old_team and old_team != new_team:
+                override_round = (
+                    tournament.slots[slot_id].round
+                    if slot_id in tournament.slots
+                    else 0
+                )
+                # Cascade: replace old_team with new_team in all later rounds
+                for other_id, other_slot in tournament.slots.items():
+                    if (
+                        other_slot.round > override_round
+                        and new_picks.get(other_id) == old_team
+                    ):
+                        new_picks[other_id] = new_team
+    else:
+        new_picks.update(pick_overrides)
+
+    return PlayerEntry(
+        player_name=entry.player_name,
+        entry_name=entry.entry_name,
+        picks=new_picks,
+    )
+
+
+def compare_counterfactual(
+    entries: list[PlayerEntry],
+    player_name: str,
+    pick_overrides: dict[str, str],
+    tournament: TournamentStructure,
+    results: Results,
+    odds: dict | None = None,
+    propagate: bool = True,
+) -> dict:
+    """Run scenarios before and after a pick swap, return comparison.
+
+    Returns dict with:
+        original_pct: float — win probability before swap
+        counterfactual_pct: float — win probability after swap
+        delta: float — change in win probability (pp)
+        original_results: ScenarioResults
+        counterfactual_results: ScenarioResults
+    """
+    from core.scenarios import run_scenarios
+
+    # Original scenarios
+    original_sr = run_scenarios(entries, tournament, results, odds=odds)
+    original_total = original_sr.total_scenarios
+    original_pct = (
+        original_sr.win_counts.get(player_name, 0) / original_total * 100
+        if original_total > 0
+        else 0.0
+    )
+
+    # Build counterfactual entry
+    entry = next(e for e in entries if e.player_name == player_name)
+    cf_entry = counterfactual_entry(entry, pick_overrides, tournament, propagate)
+
+    # Replace entry in list
+    cf_entries = [
+        cf_entry if e.player_name == player_name else e for e in entries
+    ]
+
+    # Run counterfactual scenarios
+    cf_sr = run_scenarios(cf_entries, tournament, results, odds=odds)
+    cf_total = cf_sr.total_scenarios
+    cf_pct = (
+        cf_sr.win_counts.get(player_name, 0) / cf_total * 100
+        if cf_total > 0
+        else 0.0
+    )
+
+    return {
+        "original_pct": original_pct,
+        "counterfactual_pct": cf_pct,
+        "delta": cf_pct - original_pct,
+        "original_results": original_sr,
+        "counterfactual_results": cf_sr,
+    }
+
 # --- Head to Head ---
 
 
