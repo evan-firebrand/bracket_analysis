@@ -15,6 +15,7 @@ from core.comparison import (
     compare_counterfactual,
     contrarian_picks,
     counterfactual_entry,
+    find_best_swaps,
     group_chalk_score,
     head_to_head,
     pick_popularity,
@@ -251,16 +252,68 @@ class TestCounterfactualEntry:
         assert cf.picks["r2_west_1"] == "alabama"
         assert cf.picks["championship"] == "houston"  # not cascaded
 
-    def test_scoreable(self, tournament, results, entries):
-        """Counterfactual entry should be scoreable with score_entry()."""
+    def test_propagation_multi_hop_cascade(self, tournament, entries):
+        """Swap R1 pick should cascade through R2 and Championship.
+
+        Charlie: r1_west_1v4=houston, r2_west_1=houston, championship=houston.
+        Swapping r1_west_1v4 to arizona should cascade all three levels."""
+        charlie = _get_entry(entries, "Charlie")
+        assert charlie.picks["r1_west_1v4"] == "houston"
+        assert charlie.picks["r2_west_1"] == "houston"
+        assert charlie.picks["championship"] == "houston"
+
+        cf = counterfactual_entry(
+            charlie, {"r1_west_1v4": "arizona"}, tournament, propagate=True,
+        )
+
+        assert cf.picks["r1_west_1v4"] == "arizona"
+        assert cf.picks["r2_west_1"] == "arizona"  # cascaded from R1
+        assert cf.picks["championship"] == "arizona"  # cascaded from R1 through R2
+
+    def test_multiple_overrides_round_ordered(self, tournament, entries):
+        """Multiple overrides processed in round order, cascades don't collide.
+
+        Charlie: r1_east_1v4=duke, r2_east_1=duke, r1_west_1v4=houston,
+                 r2_west_1=houston, championship=houston.
+        Swap both R1 games: duke->purdue (east) and houston->arizona (west).
+        East cascade: r2_east_1 -> purdue (championship stays houston, not duke).
+        West cascade: r2_west_1 -> arizona, championship -> arizona."""
+        charlie = _get_entry(entries, "Charlie")
+
+        cf = counterfactual_entry(
+            charlie,
+            {"r1_east_1v4": "purdue", "r1_west_1v4": "arizona"},
+            tournament,
+            propagate=True,
+        )
+
+        assert cf.picks["r1_east_1v4"] == "purdue"
+        assert cf.picks["r2_east_1"] == "purdue"  # duke -> purdue cascaded
+        assert cf.picks["r1_west_1v4"] == "arizona"
+        assert cf.picks["r2_west_1"] == "arizona"  # houston -> arizona cascaded
+        assert cf.picks["championship"] == "arizona"  # houston -> arizona cascaded
+
+    def test_propagate_true_without_tournament_raises(self, entries):
+        """propagate=True with tournament=None should raise ValueError."""
+        alice = _get_entry(entries, "Alice")
+        with pytest.raises(ValueError, match="tournament is required"):
+            counterfactual_entry(alice, {"r2_west_1": "alabama"}, propagate=True)
+
+    def test_scoreable_and_score_differs(self, tournament, results, entries):
+        """Counterfactual entry should be scoreable, and swapping a resolved
+        game pick should change the score."""
         from core.scoring import score_entry
 
         alice = _get_entry(entries, "Alice")
-        cf = counterfactual_entry(alice, {"r2_west_1": "alabama"})
+        original_scored = score_entry(alice, tournament, results)
 
-        scored = score_entry(cf, tournament, results)
-        assert scored.total_points >= 0
-        assert scored.player_name == "Alice"
+        # Alice picked unc for r1_east_2v3, but gonzaga won.
+        # Swapping to gonzaga should add 10 points.
+        cf = counterfactual_entry(alice, {"r1_east_2v3": "gonzaga"})
+        cf_scored = score_entry(cf, tournament, results)
+
+        assert cf_scored.player_name == "Alice"
+        assert cf_scored.total_points == original_scored.total_points + 10
 
 
 class TestCompareCounterfactual:
@@ -299,3 +352,65 @@ class TestCompareCounterfactual:
         )
 
         assert abs(result["delta"]) < 0.01
+
+    def test_unknown_player_raises(self, tournament, results, entries):
+        """Comparing a player not in entries should raise ValueError."""
+        with pytest.raises(ValueError, match="not found in entries"):
+            compare_counterfactual(
+                entries, "NonexistentPlayer",
+                {"r2_west_1": "alabama"},
+                tournament, results,
+            )
+
+
+class TestFindBestSwaps:
+    """Tests for find_best_swaps() — WI-4."""
+
+    def test_returns_ranked_list(self, tournament, results, entries):
+        """Should return swaps sorted by delta descending."""
+        swaps = find_best_swaps(entries, "Alice", tournament, results)
+
+        assert isinstance(swaps, list)
+        assert len(swaps) > 0
+        # Sorted by delta descending
+        for i in range(len(swaps) - 1):
+            assert swaps[i]["delta"] >= swaps[i + 1]["delta"]
+
+    def test_swap_has_required_keys(self, tournament, results, entries):
+        """Each swap dict should contain all required keys."""
+        swaps = find_best_swaps(entries, "Alice", tournament, results)
+        required = {"slot_id", "round", "old_team", "new_team",
+                     "original_pct", "new_pct", "delta"}
+
+        for swap in swaps:
+            assert required.issubset(swap.keys())
+
+    def test_only_pending_slots(self, tournament, results, entries):
+        """Swaps should only be for pending (unplayed) slots."""
+        swaps = find_best_swaps(entries, "Alice", tournament, results)
+        completed = set(results.results.keys())
+
+        for swap in swaps:
+            assert swap["slot_id"] not in completed
+
+    def test_no_swap_to_same_team(self, tournament, results, entries):
+        """Should never suggest swapping to the team already picked."""
+        alice = _get_entry(entries, "Alice")
+        swaps = find_best_swaps(entries, "Alice", tournament, results)
+
+        for swap in swaps:
+            assert swap["new_team"] != alice.picks[swap["slot_id"]]
+
+    def test_max_swaps_respected(self, tournament, results, entries):
+        """Should return at most max_swaps results."""
+        swaps = find_best_swaps(
+            entries, "Alice", tournament, results, max_swaps=1,
+        )
+        assert len(swaps) <= 1
+
+    def test_unknown_player_raises(self, tournament, results, entries):
+        """Should raise ValueError for unknown player."""
+        with pytest.raises(ValueError, match="not found in entries"):
+            find_best_swaps(
+                entries, "NonexistentPlayer", tournament, results,
+            )

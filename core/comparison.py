@@ -33,6 +33,11 @@ def counterfactual_entry(
     Returns:
         A new PlayerEntry with modified picks.
     """
+    if propagate and tournament is None:
+        raise ValueError(
+            "tournament is required when propagate=True"
+        )
+
     new_picks = dict(entry.picks)
 
     if propagate and tournament:
@@ -100,7 +105,14 @@ def compare_counterfactual(
     )
 
     # Build counterfactual entry
-    entry = next(e for e in entries if e.player_name == player_name)
+    entry = next(
+        (e for e in entries if e.player_name == player_name),
+        None,
+    )
+    if entry is None:
+        raise ValueError(
+            f"Player '{player_name}' not found in entries"
+        )
     cf_entry = counterfactual_entry(entry, pick_overrides, tournament, propagate)
 
     # Replace entry in list
@@ -124,6 +136,92 @@ def compare_counterfactual(
         "original_results": original_sr,
         "counterfactual_results": cf_sr,
     }
+
+
+def find_best_swaps(
+    entries: list[PlayerEntry],
+    player_name: str,
+    tournament: TournamentStructure,
+    results: Results,
+    odds: dict | None = None,
+    max_swaps: int = 10,
+) -> list[dict]:
+    """Find the single-pick swaps that most improve a player's win probability.
+
+    For each pending game, tries swapping to the alternate team and measures
+    the win probability delta. Returns top swaps ranked by delta descending.
+
+    Returns list of dicts:
+        slot_id, round, old_team, new_team, original_pct, new_pct, delta
+    """
+    from core.scenarios import run_scenarios
+    from core.scoring import score_entry
+    from core.tournament import get_remaining_games
+
+    entry = next(
+        (e for e in entries if e.player_name == player_name),
+        None,
+    )
+    if entry is None:
+        raise ValueError(f"Player '{player_name}' not found in entries")
+
+    # Get the player's scored entry to find pending picks
+    scored = score_entry(entry, tournament, results)
+
+    # Get remaining games with their participants
+    remaining = get_remaining_games(tournament, results)
+    remaining_by_slot = {g["slot_id"]: g for g in remaining}
+
+    # Run original scenarios once (reused for all comparisons)
+    original_sr = run_scenarios(entries, tournament, results, odds=odds)
+    original_total = original_sr.total_scenarios
+    original_pct = (
+        original_sr.win_counts.get(player_name, 0) / original_total * 100
+        if original_total > 0
+        else 0.0
+    )
+
+    swaps = []
+    for slot_id in scored.pending_picks:
+        game = remaining_by_slot.get(slot_id)
+        if not game or not game["team_a"] or not game["team_b"]:
+            continue
+
+        current_pick = entry.picks.get(slot_id)
+        possible_teams = [game["team_a"], game["team_b"]]
+
+        for new_team in possible_teams:
+            if new_team == current_pick:
+                continue
+
+            cf_entry = counterfactual_entry(
+                entry, {slot_id: new_team}, tournament, propagate=True,
+            )
+            cf_entries = [
+                cf_entry if e.player_name == player_name else e
+                for e in entries
+            ]
+            cf_sr = run_scenarios(cf_entries, tournament, results, odds=odds)
+            cf_total = cf_sr.total_scenarios
+            cf_pct = (
+                cf_sr.win_counts.get(player_name, 0) / cf_total * 100
+                if cf_total > 0
+                else 0.0
+            )
+
+            swaps.append({
+                "slot_id": slot_id,
+                "round": game["round"],
+                "old_team": current_pick,
+                "new_team": new_team,
+                "original_pct": original_pct,
+                "new_pct": cf_pct,
+                "delta": cf_pct - original_pct,
+            })
+
+    swaps.sort(key=lambda s: -s["delta"])
+    return swaps[:max_swaps]
+
 
 # --- Head to Head ---
 
