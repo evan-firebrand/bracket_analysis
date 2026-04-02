@@ -146,7 +146,19 @@ Before the Sweet 16, five players were still alive and the pool hinged on two te
 
 **Key observation**: 5 of 7 players picked Arizona in Semi 2. Only scrapr and Rebecca picked Michigan — and that's the entire basis of their late-tournament value. No one picked Illinois to reach the Final Four.
 
-> **NEEDS INTERPRETATION**: Rebecca and scrapr have *identical* Final Four picks (Duke + Michigan) and the same champion (Duke). Yet Rebecca is at 25% win probability and scrapr is eliminated at 0%. The difference is entirely mid-round picks — Rebecca accumulated 200 more points than scrapr in Rounds 1-4. Same strategy, wildly different execution. Is there a story here about the picks that "don't matter" actually mattering?
+**DATA: Same Final Four strategy, 200-point gap — and the gap is entirely from the Sweet 16 and Elite 8.**
+
+Round-by-round comparison:
+
+| Round | Rebecca | scrapr | Gap |
+|-------|---------|--------|-----|
+| Round of 64 | 260 | 260 | 0 |
+| Round of 32 | 180 | 180 | 0 |
+| Sweet 16 | 200 | 80 | **+120** |
+| Elite 8 | 160 | 80 | **+80** |
+| Total | 800 | 600 | **+200** |
+
+They were dead even through R32. Then Rebecca pulled away: she went 5/8 in the Sweet 16 vs scrapr's 2/8, and 2/4 in the Elite 8 vs scrapr's 1/4. The "boring" mid-round picks that don't seem like they'd determine the pool? They're the entire reason Rebecca is alive and scrapr isn't. Same Final Four picks, same champion — but you need the points to be in striking distance when your Final Four picks land.
 
 ### Bracket Similarity (highest-overlap pairs)
 
@@ -160,7 +172,18 @@ Before the Sweet 16, five players were still alive and the pool hinged on two te
 
 **Hugh452871778 and Rebecca are near-twins in the late rounds** (87% S16+ agreement) despite only 73% overall. They diverge heavily in the first two rounds but converge on the same teams going deep.
 
-> **NEEDS INTERPRETATION**: If Hugh452871778 and Rebecca are so similar in late rounds, why are their outcomes so different (12.5% vs 25%)? The answer is that Rebecca picked Michigan in the FF while Hugh452871778 picked Arizona. That one pick divergence in an otherwise 87%-similar bracket is the entire difference. Worth exploring if there's a "one pick changes everything" angle.
+**DATA: One pick changes everything.** Their two S16+ divergences:
+
+| Game | Hugh452871778 | Rebecca | Winner | Points |
+|------|---------------|---------|--------|--------|
+| Sweet 16 (r3_midwest_2) | Tennessee | Virginia | Tennessee | 40 pts to Hugh452871778 |
+| Final Four Semi 2 (r5_semi2) | Arizona | Michigan | Pending | 160 pts at stake |
+
+The Tennessee/Virginia divergence gave Hugh452871778 a 40-point edge. But the Semi 2 pick is the one that matters for the pool outcome.
+
+**Counterfactual**: If Rebecca had picked Arizona instead of Michigan (matching Hugh452871778), her win probability drops from **25% to 0%**. She would be mathematically eliminated. That one pick — Michigan over Arizona in Semi 2 — is her entire 25% win probability. It's not a marginal difference. It's everything.
+
+In the early rounds, they diverge on 15 picks. Hugh452871778 earned 130 pts from those divergences vs Rebecca's 90 pts — a 40-point gap that explains why Hugh452871778 leads her 880 to 800 today. But none of that matters if Michigan wins Saturday.
 
 ### Bracket Personality (Chalk vs. Chaos)
 
@@ -176,7 +199,29 @@ Upset picks in Round 1 (picking the higher seed):
 | Rebecca | 4/32 (12%) | Chalk-leaning |
 | Evan | 2/32 (6%) | Pure chalk |
 
-> **NEEDS INTERPRETATION**: Evan is by far the chalkiest bracket — only 2 upset picks in R1. Yet he was the 2nd most likely winner pre-Sweet 16 at 24%. Is chalk being rewarded in this tournament, or was Evan just riding Duke? tvenie was the most chaotic at 28% upsets — did that chaos help or hurt?
+**DATA: Chalk is not being rewarded — it's just not being punished.**
+
+The tournament had exactly 8/32 R1 upsets (25%) — right on the historical average. No upset-heavy chaos, no chalk paradise. The results were normal.
+
+Full breakdown:
+
+| Player | Chalk Score | Upset Picks | Upset Hits | R1 Pts (Chalk) | R1 Pts (Upset) | Total Pts |
+|--------|------------|-------------|------------|----------------|---------------|-----------|
+| Hugh452871778 | 75% | 8 | 6 | 220 | 60 | 880 |
+| Hugh1778 | 84% | 5 | 4 | 230 | 40 | 830 |
+| Evan | 94% | 2 | 1 | 230 | 10 | 820 |
+| Rebecca | 88% | 4 | 3 | 230 | 30 | 800 |
+| tvenie | 72% | 9 | 5 | 200 | 50 | 730 |
+| Elizabeth | 84% | 5 | 2 | 210 | 20 | 730 |
+| scrapr | 88% | 4 | 3 | 230 | 30 | 600 |
+
+**Spearman correlation between chalk score and total points: -0.14** — essentially zero. Being chalky didn't help or hurt.
+
+**The Evan question**: Only 9% of Evan's 820 points come from Duke picks (70 pts). The other 750 pts come from non-Duke picks. His strong position pre-Sweet 16 wasn't about chalk *or* Duke — it was broad accuracy across all rounds. Duke was his future upside (potential 600 pts), not his actual scored points.
+
+**Hugh452871778 is the real chalk story**: Most upset picks in R1 (8), but also the most upset hits (6 correct out of 8). His chaos-leaning approach *worked* in R1 — he earned 60 pts from upsets vs Evan's 10. That's why he leads the pool despite having a "worse" champion outcome.
+
+**tvenie's chaos hurt her**: 9 upset picks, only 5 hit. She picked 4 wrong underdogs in R1, costing 40 pts. But her elimination had nothing to do with R1 — it was Florida's R2 loss that killed her.
 
 ### Contrarian Picks (unique picks no one else made, S16+)
 
@@ -189,7 +234,29 @@ Upset picks in Round 1 (picking the higher seed):
 
 Hugh1778 is the most contrarian in the late rounds — 4 unique picks, including the only living champion. His contrarian Arizona pick is the entire reason he's the favorite.
 
-> **NEEDS INTERPRETATION**: Every contrarian pick that has been resolved so far was wrong — but the two biggest ones (UConn FF, Arizona championship) are still pending. Is contrarianism being punished or rewarded in this pool? The answer seems to be: it's high-risk, high-reward. Most contrarian picks fail, but the one that survives (Arizona) is worth everything.
+**DATA: Contrarianism has a 0% hit rate on resolved picks — and massive pending EV.**
+
+Full contrarian P&L (picks made by <20% of the group, i.e., unique or near-unique):
+
+| Player | Contrarian Picks | Hits | Misses | Pending | Pts Gained | Pts Lost | Pending EV |
+|--------|-----------------|------|--------|---------|------------|----------|------------|
+| Hugh1778 | 4 | 0 | 2 | 2 | +0 | -120 | **147** |
+| Elizabeth | 5 | 0 | 5 | 0 | +0 | -120 | 0 |
+| scrapr | 2 | 0 | 2 | 0 | +0 | -120 | 0 |
+| tvenie | 6 | 0 | 6 | 0 | +0 | -70 | 0 |
+| Hugh452871778 | 2 | 0 | 2 | 0 | +0 | -10 | 0 |
+| Evan | 1 | 0 | 1 | 0 | +0 | 0 | 0 |
+| Rebecca | 1 | 1 | 0 | 0 | +20 | 0 | 0 |
+
+**Every resolved contrarian pick in the pool has missed — except one of Rebecca's R2 picks.** That's 0 hits out of 18 resolved contrarian picks across the group (excluding Rebecca's 1).
+
+**Hugh1778's contrarian calculus**:
+- Alabama in S16 + E8: both missed. Cost: -120 pts vs the consensus (everyone else picked Michigan and earned 40+80)
+- UConn in FF: pending. EV = 46% × 160 = **73 pts** that no one else can earn
+- Arizona as champion: pending. EV = 23% × 320 = **74 pts** that no one else can earn
+- **Net: -120 realized, +147 expected.** If Arizona wins the championship, his contrarian picks generate a net +280 pts above the field. If Arizona loses, he's -120 net. Classic high-risk, high-reward.
+
+**The takeaway**: Contrarianism is being punished on the scoreboard (every resolved pick missed) but could still pay off enormously through two pending picks. It only takes one contrarian pick surviving to justify the whole strategy — and Hugh1778's surviving pick (Arizona champion) is worth 320 points nobody else can access.
 
 ---
 
@@ -210,7 +277,27 @@ The most interesting narrative arc in the pool:
 | Key differentiator from Hugh452871778 | Michigan over Arizona in Semi 2 |
 | Key differentiator from scrapr | 200 more points in R1-R4 (same FF picks) |
 
-> **NEEDS INTERPRETATION**: Rebecca's story has a clean narrative hook — dark horse, never led, quietly positioned, Vegas favorites doing her work. But is there a deeper angle? She's essentially a hybrid of Hugh452871778's late-round picks and scrapr's Final Four picks, with better early-round execution than either. Is she the "best of both worlds" bracket, or did she just get lucky that her specific combination landed in the one path that works?
+**DATA: She's structurally sound, not just lucky — but one pick still defines her.**
+
+**Three-way decomposition** — where do Rebecca's 800 points come from?
+
+| Source | Picks | Points | What it means |
+|--------|-------|--------|---------------|
+| Shared with both Hugh452871778 + scrapr | 39 | 490 | The consensus core — 61% of her points |
+| Hugh452871778 strategy (matches Hugh452 only) | 7 | 220 | Late-round accuracy — her Illinois/Tennessee S16 picks |
+| scrapr strategy (matches scrapr only) | 8 | 30 | Early-round overlap — low value |
+| Unique to Rebecca | 9 | 60 | Her own calls — mostly R1/R2 coin flips |
+
+Rebecca is not a clone of either player. 61% of her points come from picks all three share. The other 39% leans heavily toward Hugh452871778's late-round instincts (220 pts) rather than scrapr's early-round picks (30 pts). She's more "Hugh452871778 with Michigan" than "scrapr with better execution."
+
+**Counterfactual**: If Rebecca had picked Arizona instead of Michigan in Semi 2 (the Hugh452871778 pick), her win probability drops from **25% to 0%** — mathematically eliminated. The same result as Q6. Her entire pool position rests on that one pick.
+
+**But is that "lucky"?** Not entirely:
+- She outperformed scrapr in the Sweet 16 (200 vs 80) and Elite 8 (160 vs 80) — that's skill/judgment, not luck
+- She matched Hugh452871778 on 87% of late-round calls — she clearly reads the bracket similarly
+- The Michigan pick was a minority call (only 2 of 7 picked it) — she went against the field on the pick that turned out to matter most
+
+**Verdict**: Rebecca built a structurally strong bracket through good mid-round judgment. But her win probability — the difference between 25% and 0% — comes down to a single Semi 2 pick. She earned the right to be in contention. Whether she wins depends on one game.
 
 ---
 
