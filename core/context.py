@@ -15,6 +15,7 @@ from core.models import (
     ScoredEntry,
     TournamentStructure,
 )
+from core.scenarios import run_scenarios
 from core.scoring import (
     ROUND_NAMES,
     build_leaderboard,
@@ -54,8 +55,13 @@ class AnalysisContext:
             self.tournament, self.results
         )
 
-        # Scenario results (populated later by scenario engine)
-        self.scenarios: ScenarioResults | None = None
+        # Scenario results (eagerly computed so home screen can use them)
+        try:
+            self.scenario_results: ScenarioResults | None = run_scenarios(
+                self.entries, self.tournament, self.results
+            )
+        except Exception:
+            self.scenario_results = None
 
         # AI content (loaded if available)
         self.ai_content: dict | None = self._load_ai_content(data_dir)
