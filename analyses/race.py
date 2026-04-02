@@ -333,7 +333,6 @@ def _render_elimination_moments(ctx):
 
         # Find the last game that destroyed points for this player
         last_hit_slot = None
-        last_hit_loser = None
         last_hit_destroyed = 0
 
         for slot_id in game_order:
@@ -349,7 +348,6 @@ def _render_elimination_moments(ctx):
 
             if destroyed > 0:
                 last_hit_slot = slot_id
-                last_hit_loser = loser
                 last_hit_destroyed = destroyed
 
         if last_hit_slot:

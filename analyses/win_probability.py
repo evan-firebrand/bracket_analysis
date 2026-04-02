@@ -21,7 +21,7 @@ from core.scenarios import (
     run_scenarios,
 )
 from core.scoring import ROUND_NAMES, score_entry
-from core.tournament import get_remaining_games, get_remaining_slots
+from core.tournament import get_remaining_slots
 
 TITLE = "Who's Going to Win?"
 DESCRIPTION = "Win probabilities, finish distributions, and critical games"
@@ -134,7 +134,6 @@ def _render_projected_leaderboard(ctx):
 
     # Build "favorites win" scenario for non-championship games
     deciding_rounds = sorted_rounds[:-1]
-    final_round = sorted_rounds[-1]
     deciding_slots = []
     for r in deciding_rounds:
         deciding_slots.extend(remaining_by_round[r])
@@ -341,7 +340,6 @@ def _render_how_this_ends(ctx):
             scores.sort(key=lambda x: -x[1])
             final_winners.add(scores[0][0])
 
-        final_round_name = ROUND_NAMES.get(final_round, "final")
         if len(final_winners) == 1:
             pool_winner = list(final_winners)[0]
             decided = True
@@ -379,7 +377,11 @@ def _render_how_this_ends(ctx):
             "Saturday": p["label"],
             "Chance": f"{p['prob']:.0%}",
             "Pool Winner": p["pool_winner"],
-            "Decided?": "Before the final" if p["decided_early"] else f"Comes down to {ROUND_NAMES.get(final_round, 'the final')}",
+            "Decided?": (
+                "Before the final"
+                if p["decided_early"]
+                else f"Comes down to {ROUND_NAMES.get(final_round, 'the final')}"
+            ),
         })
 
     st.dataframe(
