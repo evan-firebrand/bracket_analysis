@@ -703,27 +703,11 @@ def clinch_scenarios(
     can_win = player_scored.max_possible > max_other_current
 
     if not can_win:
-        # Compute minimum picks needed to close the gap
-        gap = max_other_current - player_scored.total_points
-        pending_values = sorted(
-            [POINTS_PER_ROUND[tournament.slots[sid].round]
-             for sid in player_scored.pending_picks],
-            reverse=True,
-        )
-        count = 0
-        accumulated = 0
-        for v in pending_values:
-            accumulated += v
-            count += 1
-            if accumulated >= gap:
-                break
-        else:
-            count = len(pending_values) + 1
         return {
             "clinched": False,
             "clinch_outcomes": None,
             "can_win": False,
-            "min_picks_needed": count,
+            "min_picks_needed": _min_picks_to_lead(player_scored, max_other_current, tournament),
         }
 
     # Clinch scenario: build hypothetical where player wins all alive pending picks
@@ -772,8 +756,32 @@ def clinch_scenarios(
         "clinched": False,
         "clinch_outcomes": None,
         "can_win": True,
-        "min_picks_needed": 0,
+        "min_picks_needed": _min_picks_to_lead(player_scored, max_other_current, tournament),
     }
+
+
+def _min_picks_to_lead(
+    player_scored,
+    max_other_current: float,
+    tournament: TournamentStructure,
+) -> int:
+    """Minimum correct pending picks for player's score to exceed max_other_current."""
+    gap = max_other_current - player_scored.total_points
+    if gap <= 0:
+        return 0
+    pending_values = sorted(
+        [POINTS_PER_ROUND[tournament.slots[sid].round]
+         for sid in player_scored.pending_picks],
+        reverse=True,
+    )
+    count = 0
+    accumulated = 0
+    for v in pending_values:
+        accumulated += v
+        count += 1
+        if accumulated > gap:
+            return count
+    return len(pending_values) + 1  # can't close the gap
 
 
 def best_path(

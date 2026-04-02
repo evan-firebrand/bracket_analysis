@@ -24,7 +24,7 @@ from core.scenarios import (
     run_scenarios,
 )
 from core.scoring import ROUND_NAMES, score_entry
-from core.tournament import get_remaining_slots
+from core.tournament import get_participants_for_slot, get_remaining_slots
 
 TITLE = "Who's Going to Win?"
 DESCRIPTION = "Win probabilities, finish distributions, and critical games"
@@ -571,7 +571,6 @@ def _render_path_to_win(ctx: AnalysisContext, sr) -> None:
             if scored:
                 for g in get_remaining_slots(ctx.tournament, ctx.results):
                     if g == sid:
-                        from core.tournament import get_participants_for_slot
                         ta, tb = get_participants_for_slot(ctx.tournament, ctx.results, sid)
                         other = tb if winner == ta else ta
                         break
