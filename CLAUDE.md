@@ -62,6 +62,10 @@ pyproject.toml         — pytest + ruff config
 .github/workflows/     — CI pipeline (lint, test, PR validation, review checklist)
 ```
 
+## Branch hygiene
+
+Always `git fetch origin main && git merge origin/main` before starting work on a new branch. This prevents accidentally reverting previously merged work when your branch is based on a stale main.
+
 ## Important constraints
 
 - Requires `ANTHROPIC_API_KEY` environment variable for ESPN bracket fetching (not needed for analysis/UI)
