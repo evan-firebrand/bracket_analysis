@@ -11,6 +11,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.loader import load_entries, load_results, load_tournament
 from core.scenarios import (
+    _lowest_confidence,
+    _min_picks_to_lead,
     best_path,
     brute_force_scenarios,
     clinch_scenarios,
@@ -380,3 +382,50 @@ class TestBestPath:
         path = best_path(sr, "Charlie", entries, tournament, results)
         root_for_teams = [s["root_for"] for s in path["steps"]]
         assert "houston" in root_for_teams
+
+
+# --- Helper function unit tests ---
+
+
+class TestHelperFunctions:
+    def test_min_picks_to_lead_already_leading(self, entries, tournament, results):
+        """Player already leads: _min_picks_to_lead returns 0."""
+        from core.scoring import score_entry
+
+        alice = next(e for e in entries if e.player_name == "Alice")
+        alice_scored = score_entry(alice, tournament, results)
+        # Alice leads; max_other_current set below her score
+        result = _min_picks_to_lead(alice_scored, alice_scored.total_points - 1, tournament)
+        assert result == 0
+
+    def test_min_picks_to_lead_gap_open(self, entries, tournament, results):
+        """Player is behind: returns a positive integer pick count."""
+        from core.scoring import score_entry
+
+        alice = next(e for e in entries if e.player_name == "Alice")
+        alice_scored = score_entry(alice, tournament, results)
+        # Set max_other well above alice's current score to force needing picks
+        result = _min_picks_to_lead(alice_scored, alice_scored.total_points + 1, tournament)
+        assert result >= 1
+
+    def test_lowest_confidence_unknown_source_is_lowest(self):
+        """Unknown source strings should rank as lowest confidence (not highest)."""
+        # "moneyline" is highest confidence; unknown source should not beat it
+        result = _lowest_confidence(["moneyline", "unknown_source"])
+        assert result == "unknown_source"
+
+    def test_lowest_confidence_known_sources(self):
+        """coin_flip < seed_historical < spread < moneyline."""
+        assert _lowest_confidence(["moneyline", "coin_flip"]) == "coin_flip"
+        assert _lowest_confidence(["spread", "seed_historical"]) == "seed_historical"
+        assert _lowest_confidence(["moneyline"]) == "moneyline"
+
+    def test_best_path_greedy_engine(self, entries, tournament, results):
+        """Force monte_carlo engine to exercise _best_path_greedy code path."""
+        sr = monte_carlo_scenarios(entries, tournament, results, n_simulations=500, seed=42)
+        # Manually override engine label to trigger greedy path in best_path
+        sr.engine = "monte_carlo"
+        path = best_path(sr, "Alice", entries, tournament, results)
+        assert "steps" in path
+        assert "win_probability" in path
+        assert isinstance(path["steps"], list)

@@ -719,7 +719,7 @@ def clinch_scenarios(
     ]
     alive_pending.sort(key=lambda x: tournament.slots[x[0]].round)
 
-    hypo_results = results
+    hypo_results = results  # what_if() returns a new Results; original is never mutated
     clinch_outcomes = []
     for slot_id, pick_team in alive_pending:
         team_a, team_b = get_participants_for_slot(tournament, hypo_results, slot_id)
@@ -735,7 +735,12 @@ def clinch_scenarios(
         clinch_outcomes.append({"slot_id": slot_id, "required_winner": pick_team})
 
     if not clinch_outcomes:
-        return {"clinched": False, "clinch_outcomes": None, "can_win": True, "min_picks_needed": 0}
+        return {
+            "clinched": False,
+            "clinch_outcomes": None,
+            "can_win": True,
+            "min_picks_needed": _min_picks_to_lead(player_scored, max_other_current, tournament),
+        }
 
     # Re-score all players in the hypothetical
     hypo_scored = {e.player_name: score_entry(e, tournament, hypo_results) for e in entries}
@@ -957,7 +962,7 @@ def _lowest_confidence(sources: list[str]) -> str:
     order = ["coin_flip", "seed_historical", "spread", "moneyline"]
     if not sources:
         return "coin_flip"
-    return min(sources, key=lambda s: order.index(s) if s in order else len(order))
+    return min(sources, key=lambda s: order.index(s) if s in order else -1)
 
 
 def _empty_results(
