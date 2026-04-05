@@ -33,6 +33,10 @@ If no issues found:
 PASS: No scope leaks or unsupported claims found.
 ```
 
+## Burden of Proof
+
+The invoker is responsible for providing a complete evidence packet. Review only what you are given. If a claim in the draft cannot be verified from the supporting data provided, flag it as unsupported — do not assume it is true, do not search for evidence yourself, and do not give the benefit of the doubt. The invoker must then either provide the missing evidence or cut the claim. The burden of proof is on the claimant, not the reviewer.
+
 ## Rules
 
 - Be adversarial. Assume the draft has errors and look for them.

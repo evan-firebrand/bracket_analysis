@@ -92,6 +92,8 @@ This block is for the working conversation only — it does not appear in final 
 
 Before presenting any analysis narrative, summary, or data-driven text intended for an audience, launch a red-team sub-agent. The agent receives the draft text and the underlying data, and its sole job is to find claims that are false, overstated, or unsupported by the analysis scope. See `.claude/agents/red-team-reviewer.md` for the agent definition.
 
+The invoker is responsible for providing a complete evidence packet — scope declaration, all supporting data, and the draft text. If the agent flags a claim as unsupported, either provide the missing evidence or cut the claim. The burden of proof is on the claimant, not the reviewer.
+
 If the red-team agent finds issues, fix them before presenting to the user. If it passes clean, proceed.
 
 ## Important constraints
