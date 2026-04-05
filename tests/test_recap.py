@@ -190,11 +190,15 @@ class TestStandingsDiff:
 
     def test_newly_eliminated_when_cant_win(self, tournament, results_r2, entries):
         """Eve's max_possible after R2 is < leader total — she's newly eliminated."""
+        # Verify Eve was NOT eliminated before R2 (still had alive picks in r2_east_1)
+        diffs_r1 = standings_diff(tournament, results_r2, entries, round_num=1)
+        eve_r1 = next(d for d in diffs_r1 if d.player_name == "Eve")
+        assert eve_r1.newly_eliminated is False  # gonzaga was still alive after R1
+
+        # After R2: Eve has 20pts, gonzaga eliminated, championship pick is dead.
+        # max_possible = 20, Charlie has 60 → Eve is newly eliminated.
         diffs = standings_diff(tournament, results_r2, entries, round_num=2)
         eve = next(d for d in diffs if d.player_name == "Eve")
-        # Eve has 20pts. Championship is the only remaining game.
-        # Eve picked gonzaga for championship — gonzaga is eliminated.
-        # max_possible = 20 (can't gain any more). Charlie has 60. Eve is newly eliminated.
         assert eve.newly_eliminated is True
 
     def test_not_newly_eliminated_when_still_alive(self, tournament, results_r2, entries):

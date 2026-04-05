@@ -149,7 +149,8 @@ def standings_diff(
         is_eliminated = after.max_possible < post_leader_total
         newly_eliminated = is_eliminated and not was_eliminated
 
-        # Clinched: current total exceeds every other player's max possible
+        # Clinched: current total exceeds every other player's max possible.
+        # Strict inequality: a tie doesn't clinch — the player must be unreachable.
         clinched = all(
             after.total_points > s.max_possible
             for n, s in scored_after.items()
