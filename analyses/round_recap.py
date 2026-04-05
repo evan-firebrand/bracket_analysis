@@ -152,6 +152,26 @@ def _render_eliminated_teams(recap: RoundRecap, ctx: AnalysisContext) -> None:
         )
 
 
+def summarize(ctx: AnalysisContext) -> str | None:
+    recap = round_recap(ctx.tournament, ctx.results, ctx.entries)
+    if recap is None:
+        return None
+
+    upsets = [g for g in recap.games if g.is_upset]
+    status = "complete" if recap.is_complete else f"{len(recap.games)}/{recap.total_games_in_round} games"
+
+    if upsets:
+        upset_names = [
+            ctx.tournament.teams[g.winner].name
+            if g.winner in ctx.tournament.teams else g.winner
+            for g in upsets
+        ]
+        upset_str = " and ".join(upset_names)
+        return f"{recap.round_name} ({status}): {len(upsets)} upset{'s' if len(upsets) != 1 else ''} — {upset_str}."
+
+    return f"{recap.round_name} ({status}): no upsets, all favorites advanced."
+
+
 def _count_surviving_pickers(
     eliminated_team: str,
     lost_in_slot: str,
