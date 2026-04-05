@@ -62,6 +62,19 @@ pyproject.toml         — pytest + ruff config
 .github/workflows/     — CI pipeline (lint, test, PR validation, review checklist)
 ```
 
+## Analysis integrity
+
+**The scope of a claim must never exceed the scope of the evidence.**
+
+When analysis is narrowed (e.g. comparing two players instead of the full pool), any conclusions must stay within that narrowed scope. Before publishing or presenting any finding:
+
+1. **Label the scope.** State explicitly what was analyzed and what was excluded. "This compares Player A vs Player B only" means you cannot claim outcomes about the full leaderboard.
+2. **Validate every claim against its evidence.** If a conclusion requires data outside the current scope (e.g. other players, other systems, other time periods), either widen the analysis or qualify the claim.
+3. **Red-team before publishing.** Ask: "Is there a scenario where this claim is false?" If the answer requires context outside the analysis scope, the claim is leaking.
+4. **Distinguish relative from absolute.** "A beats B" (relative, bilateral) is not the same as "A wins" (absolute, pool-wide). Use precise language.
+
+This applies to all analysis — bracket comparisons, data summaries, narratives, dashboards. A correct number with the wrong framing is a wrong answer.
+
 ## Important constraints
 
 - Requires `ANTHROPIC_API_KEY` environment variable for ESPN bracket fetching (not needed for analysis/UI)
