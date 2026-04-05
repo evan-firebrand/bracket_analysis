@@ -75,6 +75,25 @@ When analysis is narrowed (e.g. comparing two players instead of the full pool),
 
 This applies to all analysis — bracket comparisons, data summaries, narratives, dashboards. A correct number with the wrong framing is a wrong answer.
 
+### Scope block (Layer 1)
+
+Before presenting any analysis findings, output a scope block in the working conversation:
+
+```
+SCOPE: [what was analyzed]
+EXCLUDED: [what was not analyzed]
+CAN CLAIM: [conclusions the evidence supports]
+CANNOT CLAIM: [conclusions that would require broader data]
+```
+
+This block is for the working conversation only — it does not appear in final deliverables (narratives, dashboards, plugin text). Its purpose is to make scope visible so both the agent and the user can catch leaking claims before they're published.
+
+### Red-team review (Layer 2)
+
+Before presenting any analysis narrative, summary, or data-driven text intended for an audience, launch a red-team sub-agent. The agent receives the draft text and the underlying data, and its sole job is to find claims that are false, overstated, or unsupported by the analysis scope. See `.claude/agents/red-team-reviewer.md` for the agent definition.
+
+If the red-team agent finds issues, fix them before presenting to the user. If it passes clean, proceed.
+
 ## Important constraints
 
 - Requires `ANTHROPIC_API_KEY` environment variable for ESPN bracket fetching (not needed for analysis/UI)
