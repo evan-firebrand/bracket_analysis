@@ -62,6 +62,46 @@ pyproject.toml         — pytest + ruff config
 .github/workflows/     — CI pipeline (lint, test, PR validation, review checklist)
 ```
 
+## Analysis integrity
+
+**The scope of a claim must never exceed the scope of the evidence.**
+
+When analysis is narrowed (e.g. comparing two players instead of the full pool), any conclusions must stay within that narrowed scope. Before publishing or presenting any finding:
+
+1. **Label the scope.** State explicitly what was analyzed and what was excluded. "This compares Player A vs Player B only" means you cannot claim outcomes about the full leaderboard.
+2. **Validate every claim against its evidence.** If a conclusion requires data outside the current scope (e.g. other players, other systems, other time periods), either widen the analysis or qualify the claim.
+3. **Red-team before publishing.** Ask: "Is there a scenario where this claim is false?" If the answer requires context outside the analysis scope, the claim is leaking.
+4. **Distinguish relative from absolute.** "A beats B" (relative, bilateral) is not the same as "A wins" (absolute, pool-wide). Use precise language.
+
+This applies to all analysis — bracket comparisons, data summaries, narratives, dashboards. A correct number with the wrong framing is a wrong answer.
+
+### Scope block (Layer 1)
+
+Before presenting any analysis findings, output a scope block in the working conversation:
+
+```
+SCOPE: [what was analyzed]
+EXCLUDED: [what was not analyzed]
+CAN CLAIM: [conclusions the evidence supports]
+CANNOT CLAIM: [conclusions that would require broader data]
+```
+
+This block is for the working conversation only — it does not appear in final deliverables (narratives, dashboards, plugin text). Its purpose is to make scope visible so both the agent and the user can catch leaking claims before they're published.
+
+### Analysis workflow (Layer 2)
+
+When producing any analysis narrative, summary, or data-driven text intended for an audience, follow this sequence:
+
+**Step 1: Assemble the evidence packet first.** Before writing a single sentence of narrative, compile all supporting data: scores, scenarios, pick breakdowns, seedings, round-by-round results — everything a claim might need. If you're going to reference it, document it. You cannot claim what you haven't documented.
+
+**Step 2: Write the narrative constrained by the evidence.** Every factual claim must trace to something in the evidence packet. If it's not in the packet, don't write it.
+
+**Step 3: Self-review against the scope block.** Walk through every claim in the draft and check: (a) is this in the "CAN CLAIM" list? (b) does the evidence packet contain the supporting data? (c) is any conditional claim stated with its conditions? Fix issues before proceeding.
+
+**Step 4: Red-team review.** Launch the red-team sub-agent (`.claude/agents/red-team-reviewer.md`) with the scope declaration, complete evidence packet, and draft text. The agent's sole job is to find claims that are false, overstated, or unsupported. The invoker is responsible for the completeness of the evidence packet. If the agent flags a claim as unsupported, either provide the missing evidence or cut the claim. The burden of proof is on the claimant, not the reviewer.
+
+**Target: one self-review + one red-team pass = done.** If the red-team finds issues that a self-review should have caught (basic scope leaks, unverified claims, arithmetic errors), that's a process failure — not a reason for another loop.
+
 ## Important constraints
 
 - Requires `ANTHROPIC_API_KEY` environment variable for ESPN bracket fetching (not needed for analysis/UI)
