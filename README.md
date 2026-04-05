@@ -25,6 +25,27 @@ All data uses **team slugs** (lowercase, underscored: `duke`, `north_carolina`, 
 ## Architecture
 
 ```
+core/                       # Pure Python analysis (no Streamlit imports)
+  scoring.py                # ESPN scoring engine (10/20/40/80/160/320)
+  scenarios.py              # Brute-force + Monte Carlo scenario engines
+  tournament.py             # Game tree traversal, remaining slots, team paths
+  comparison.py             # H2H diffs, pick popularity, chalk scores
+  context.py                # Central data object (loads + caches everything)
+  loader.py                 # Data loading + bracket tree validation
+  models.py                 # Dataclasses (Team, GameSlot, Results, PlayerEntry)
+  narrative.py              # Template-based text descriptions
+
+analyses/                   # Auto-discovered Streamlit plugins (presentation only)
+  leaderboard.py            # Standings and rankings
+  my_bracket.py             # Individual bracket view
+  head_to_head.py           # Player comparison diffs
+  group_picks.py            # Group-wide pick analysis
+  win_probability.py        # Win% dashboard and critical games
+  scenarios_whatif.py        # Game-by-game what-if tool
+  race.py                   # Race to the finish tracker
+
+app.py                      # Streamlit web UI entry point
+
 data/                       # Tournament data (tracked in git)
   tournament.json           # Teams, seeds, regions, bracket tree
   results.json              # Game results keyed by slot_id
@@ -33,6 +54,7 @@ data/                       # Tournament data (tracked in git)
     player_brackets.json    # All player bracket picks
 
 src/
+  extract_bracket.py        # ESPN bracket extraction via Playwright DOM
   models.py                 # Prompt schema helpers
   storage.py                # JSON file read/write
 
@@ -40,11 +62,31 @@ scripts/
   validate_data.py          # Structural + score sanity validation
   verify_points.py          # Team point tally cross-check
   verify_results.py         # Web cross-reference against ESPN
+  run_scenarios.py          # CLI scenario analysis
+  fetch_espn_bracket.py     # Fetch bracket from ESPN group
+  fetch_batch_brackets.py   # Batch fetch multiple brackets
+  validate_pr.py            # PR description validation (used by CI)
+  review_checklist.py       # Diff-aware review checklist (used by CI)
+
+tests/                      # pytest test suite
+  test_scoring.py           # Scoring engine tests
+  test_scenarios.py         # Scenario engine tests
+  test_comparisons.py       # Comparison logic tests
+  test_plugins.py           # Plugin discovery tests
+  test_odds_integration.py  # Odds integration tests
+  test_validate_pr.py       # PR validation tests
+  test_review_checklist.py  # Review checklist tests
+  fixtures/                 # Test data (mini tournament)
 
 docs/
   DATA_CONTRACT.md          # Exact schemas for all data files
 
+.github/
+  workflows/ci.yml          # CI: ruff + pytest + PR validation + review checklist
+  PULL_REQUEST_TEMPLATE.md  # 6-section PR template
+
 config.yaml                 # Data directory and source URLs
+pyproject.toml              # pytest + ruff config
 ```
 
 ## Validation
@@ -63,11 +105,31 @@ python scripts/verify_points.py --team duke
 python scripts/verify_results.py
 ```
 
+## Web UI
+
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+The app loads `AnalysisContext` (tournament, results, entries) and renders analysis plugins from `analyses/`. Plugins auto-discover — add a new `.py` file to `analyses/` and it appears in the sidebar.
+
+## Testing & CI
+
+```bash
+pytest              # run tests
+ruff check .        # lint
+```
+
+CI runs both on every PR to `main`. Additionally:
+- **PR validation**: hard-fails if any of the 6 required sections are missing from the PR description
+- **Review checklist**: posts an advisory comment based on which files changed
+
 ## Setup
 
 ```bash
 pip install -r requirements.txt
-playwright install chromium   # only needed for verify_results.py
+playwright install chromium   # only needed for ESPN bracket fetching and verify_results.py
 ```
 
 ## Updating Data

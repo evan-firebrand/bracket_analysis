@@ -17,8 +17,8 @@ import random
 from dataclasses import dataclass, field
 
 from core.models import GameResult, PlayerEntry, Results, TournamentStructure
-from core.scoring import score_entry
-from core.tournament import get_remaining_slots
+from core.scoring import POINTS_PER_ROUND, get_alive_teams, score_entry
+from core.tournament import get_participants_for_slot, get_remaining_slots
 
 
 @dataclass
@@ -623,6 +623,346 @@ def _build_critical_games_from_splits(
     # Sort by max swing (most impactful first)
     critical.sort(key=lambda g: -g.max_swing)
     return critical
+
+
+def player_critical_games(
+    sr: ScenarioResults,
+    player_name: str,
+    top_n: int = 3,
+) -> list[dict]:
+    """Re-rank critical games by a single player's personal win probability swing.
+
+    Returns list of dicts (up to top_n), sorted by the player's swing descending:
+      - slot_id, team_a, team_b
+      - win_if_a: player's win% if team_a wins
+      - win_if_b: player's win% if team_b wins
+      - swing: absolute difference
+      - must_win_team: the team the player must root for (set if one outcome → 0.0%)
+    """
+    result = []
+    for cg in sr.critical_games:
+        if player_name not in cg.swings:
+            continue
+        win_if_a, win_if_b = cg.swings[player_name]
+        swing = abs(win_if_a - win_if_b)
+        if swing == 0.0:
+            continue
+        if win_if_b == 0.0:
+            must_win_team = cg.team_a
+        elif win_if_a == 0.0:
+            must_win_team = cg.team_b
+        else:
+            must_win_team = None
+        result.append({
+            "slot_id": cg.slot_id,
+            "team_a": cg.team_a,
+            "team_b": cg.team_b,
+            "win_if_a": win_if_a,
+            "win_if_b": win_if_b,
+            "swing": swing,
+            "must_win_team": must_win_team,
+        })
+    result.sort(key=lambda x: x["swing"], reverse=True)
+    return result[:top_n]
+
+
+def clinch_scenarios(
+    entries: list[PlayerEntry],
+    player_name: str,
+    tournament: TournamentStructure,
+    results: Results,
+) -> dict:
+    """Detect clinch scenarios and elimination thresholds for a player.
+
+    Returns dict with:
+      - clinched: bool  (True if player has already clinched mathematically)
+      - clinch_outcomes: list[dict] | None
+            Each dict: {slot_id, required_winner} — outcomes that guarantee 1st
+            None if no clinch scenario exists
+      - can_win: bool  (False if player's ceiling can't beat the current leader)
+      - min_picks_needed: int  (minimum correct picks needed for any win path)
+    """
+    scored = {e.player_name: score_entry(e, tournament, results) for e in entries}
+    player_scored = scored.get(player_name)
+    if not player_scored:
+        return {"clinched": False, "clinch_outcomes": None, "can_win": False, "min_picks_needed": 0}
+
+    player_entry = next((e for e in entries if e.player_name == player_name), None)
+    if not player_entry:
+        return {"clinched": False, "clinch_outcomes": None, "can_win": False, "min_picks_needed": 0}
+
+    other_scored = [s for name, s in scored.items() if name != player_name]
+
+    # Already clinched: current score exceeds everyone's max possible
+    if other_scored and player_scored.total_points > max(s.max_possible for s in other_scored):
+        return {"clinched": True, "clinch_outcomes": [], "can_win": True, "min_picks_needed": 0}
+
+    max_other_current = max((s.total_points for s in other_scored), default=0)
+
+    # can_win: player's ceiling can beat the current leader's score
+    can_win = player_scored.max_possible > max_other_current
+
+    if not can_win:
+        return {
+            "clinched": False,
+            "clinch_outcomes": None,
+            "can_win": False,
+            "min_picks_needed": _min_picks_to_lead(player_scored, max_other_current, tournament),
+        }
+
+    # Clinch scenario: build hypothetical where player wins all alive pending picks
+    alive_teams = get_alive_teams(tournament, results)
+    alive_pending = [
+        (slot_id, player_entry.picks[slot_id])
+        for slot_id in player_scored.pending_picks
+        if player_entry.picks.get(slot_id) in alive_teams
+    ]
+    alive_pending.sort(key=lambda x: tournament.slots[x[0]].round)
+
+    hypo_results = results  # what_if() returns a new Results; original is never mutated
+    clinch_outcomes = []
+    for slot_id, pick_team in alive_pending:
+        team_a, team_b = get_participants_for_slot(tournament, hypo_results, slot_id)
+        if team_a is None or team_b is None:
+            continue
+        if pick_team == team_a:
+            opponent = team_b
+        elif pick_team == team_b:
+            opponent = team_a
+        else:
+            continue
+        hypo_results = what_if(hypo_results, slot_id, pick_team, opponent)
+        clinch_outcomes.append({"slot_id": slot_id, "required_winner": pick_team})
+
+    if not clinch_outcomes:
+        return {
+            "clinched": False,
+            "clinch_outcomes": None,
+            "can_win": True,
+            "min_picks_needed": _min_picks_to_lead(player_scored, max_other_current, tournament),
+        }
+
+    # Re-score all players in the hypothetical
+    hypo_scored = {e.player_name: score_entry(e, tournament, hypo_results) for e in entries}
+    player_hypo = hypo_scored[player_name]
+    other_hypo_max = max(
+        (s.max_possible for name, s in hypo_scored.items() if name != player_name),
+        default=0,
+    )
+
+    if player_hypo.total_points > other_hypo_max:
+        return {
+            "clinched": False,
+            "clinch_outcomes": clinch_outcomes,
+            "can_win": True,
+            "min_picks_needed": len(clinch_outcomes),
+        }
+    return {
+        "clinched": False,
+        "clinch_outcomes": None,
+        "can_win": True,
+        "min_picks_needed": _min_picks_to_lead(player_scored, max_other_current, tournament),
+    }
+
+
+def _min_picks_to_lead(
+    player_scored,
+    max_other_current: float,
+    tournament: TournamentStructure,
+) -> int:
+    """Minimum correct pending picks for player's score to exceed max_other_current."""
+    gap = max_other_current - player_scored.total_points
+    if gap <= 0:
+        return 0
+    pending_values = sorted(
+        [POINTS_PER_ROUND[tournament.slots[sid].round]
+         for sid in player_scored.pending_picks],
+        reverse=True,
+    )
+    count = 0
+    accumulated = 0
+    for v in pending_values:
+        accumulated += v
+        count += 1
+        if accumulated > gap:
+            return count
+    return len(pending_values) + 1  # can't close the gap
+
+
+def best_path(
+    sr: ScenarioResults,
+    player_name: str,
+    entries: list[PlayerEntry],
+    tournament: TournamentStructure,
+    results: Results,
+    odds: dict | None = None,
+) -> dict:
+    """Find the outcome combination that maximizes a player's win probability.
+
+    Returns dict with:
+      - steps: list[dict]  — ordered by round ascending:
+            {slot_id, round, root_for, opponent}
+      - win_probability: float  — player's overall win % (unconditional)
+      - path_probability: float  — probability of this specific outcome combo
+      - odds_source: str  — lowest-confidence source used
+    """
+    total = sr.total_scenarios
+    win_probability = sr.win_counts.get(player_name, 0) / total if total > 0 else 0.0
+
+    if sr.is_eliminated.get(player_name, True):
+        return {
+            "steps": [],
+            "win_probability": win_probability,
+            "path_probability": 0.0,
+            "odds_source": "coin_flip",
+        }
+
+    player_entry = next((e for e in entries if e.player_name == player_name), None)
+    if not player_entry:
+        return {"steps": [], "win_probability": win_probability, "path_probability": 0.0, "odds_source": "coin_flip"}
+
+    rounds_of_slots = _get_remaining_slots_by_round(tournament, results)
+    if not rounds_of_slots:
+        return {"steps": [], "win_probability": win_probability, "path_probability": 1.0, "odds_source": "coin_flip"}
+
+    # For brute-force engine (small N): enumerate all winning scenarios
+    if sr.engine == "brute_force":
+        return _best_path_brute_force(
+            sr, player_name, entries, tournament, results, odds,
+            rounds_of_slots, win_probability,
+        )
+
+    # For Monte Carlo (large N): greedy approach using per-player swings
+    return _best_path_greedy(sr, player_name, tournament, results, odds, win_probability)
+
+
+def _best_path_brute_force(
+    sr: ScenarioResults,
+    player_name: str,
+    entries: list[PlayerEntry],
+    tournament: TournamentStructure,
+    results: Results,
+    odds: dict | None,
+    rounds_of_slots: list[list[str]],
+    win_probability: float,
+) -> dict:
+    """Enumerate all scenarios and return the best winning path."""
+    all_scenarios = _simulate_tournament_brute_force(tournament, results, rounds_of_slots)
+    all_remaining = [sid for round_slots in rounds_of_slots for sid in round_slots]
+
+    best_prob = -1.0
+    best_outcome_map = None
+    best_sources: list[str] = []
+
+    for hypo_results in all_scenarios:
+        hypo = Results(last_updated="", results=hypo_results)
+        scores = sorted(
+            [(e.player_name, score_entry(e, tournament, hypo).total_points) for e in entries],
+            key=lambda x: -x[1],
+        )
+        if not scores or scores[0][0] != player_name:
+            continue
+
+        # Player wins this scenario — compute its probability
+        path_prob = 1.0
+        sources: list[str] = []
+        for sid in all_remaining:
+            result_gr = hypo_results.get(sid)
+            if not result_gr:
+                continue
+            team_a, team_b = _resolve_participants(tournament, hypo_results, sid)
+            if team_a is None or team_b is None:
+                continue
+            gp = get_game_probability(team_a, team_b, tournament, odds, sid)
+            game_prob = gp.prob_a if result_gr.winner == team_a else 1.0 - gp.prob_a
+            path_prob *= game_prob
+            sources.append(gp.source)
+
+        if path_prob > best_prob:
+            best_prob = path_prob
+            best_outcome_map = hypo_results
+            best_sources = sources
+
+    if best_outcome_map is None:
+        return {"steps": [], "win_probability": win_probability, "path_probability": 0.0, "odds_source": "coin_flip"}
+
+    steps = _build_steps(best_outcome_map, all_remaining, tournament)
+    return {
+        "steps": steps,
+        "win_probability": win_probability,
+        "path_probability": best_prob,
+        "odds_source": _lowest_confidence(best_sources),
+    }
+
+
+def _best_path_greedy(
+    sr: ScenarioResults,
+    player_name: str,
+    tournament: TournamentStructure,
+    results: Results,
+    odds: dict | None,
+    win_probability: float,
+) -> dict:
+    """Greedy best-path for Monte Carlo: pick the favorable outcome per critical game."""
+    pcg = player_critical_games(sr, player_name, top_n=15)
+    steps = []
+    path_prob = 1.0
+    sources: list[str] = []
+
+    for game in pcg:
+        slot = tournament.slots[game["slot_id"]]
+        if game["win_if_a"] >= game["win_if_b"]:
+            root_for, opponent = game["team_a"], game["team_b"]
+        else:
+            root_for, opponent = game["team_b"], game["team_a"]
+        gp = get_game_probability(game["team_a"], game["team_b"], tournament, odds, game["slot_id"])
+        game_prob = gp.prob_a if root_for == game["team_a"] else 1.0 - gp.prob_a
+        path_prob *= game_prob
+        sources.append(gp.source)
+        steps.append({
+            "slot_id": game["slot_id"],
+            "round": slot.round,
+            "root_for": root_for,
+            "opponent": opponent,
+        })
+
+    steps.sort(key=lambda s: s["round"])
+    return {
+        "steps": steps,
+        "win_probability": win_probability,
+        "path_probability": path_prob,
+        "odds_source": _lowest_confidence(sources),
+    }
+
+
+def _build_steps(
+    outcome_map: dict,
+    all_remaining: list[str],
+    tournament: TournamentStructure,
+) -> list[dict]:
+    """Build sorted step list from a scenario outcome dict."""
+    steps = []
+    for sid in all_remaining:
+        result_gr = outcome_map.get(sid)
+        if not result_gr:
+            continue
+        slot = tournament.slots[sid]
+        steps.append({
+            "slot_id": sid,
+            "round": slot.round,
+            "root_for": result_gr.winner,
+            "opponent": result_gr.loser,
+        })
+    steps.sort(key=lambda s: s["round"])
+    return steps
+
+
+def _lowest_confidence(sources: list[str]) -> str:
+    """Return the lowest-confidence probability source from a list."""
+    order = ["coin_flip", "seed_historical", "spread", "moneyline"]
+    if not sources:
+        return "coin_flip"
+    return min(sources, key=lambda s: order.index(s) if s in order else -1)
 
 
 def _empty_results(

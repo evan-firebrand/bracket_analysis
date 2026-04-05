@@ -2,56 +2,112 @@
 
 ## What is this repo?
 
-Data collection layer for an NCAA tournament bracket analysis app. Uses Claude's computer use API to control a headless browser and scrape ESPN for bracket picks, game results, and betting odds.
+NCAA tournament bracket analysis app. Scores bracket picks, compares players head-to-head, runs scenario simulations (brute-force + Monte Carlo), and presents everything in a Streamlit web UI. Data collected from ESPN and DraftKings.
 
 ## Key things to know
 
-- **Claude computer use beta**: `computer_20251124` with `client.beta.messages.create()` — see `src/agent.py`
-- **Browser**: Playwright Chromium (headless). Actions in `src/browser.py`, agent loop in `src/agent.py`
-- **ESPN group URL**: Configured in `config.yaml` under `espn_group.url`. Currently targets Rebecca's bracket.
+- **Analysis layer**: `core/` contains pure Python scoring, scenario engines, comparisons, and data loading. No Streamlit imports.
+- **Plugin system**: `analyses/` has auto-discovered Streamlit plugins (presentation only — business logic goes in `core/`).
+- **Web UI**: `app.py` is the Streamlit entry point. Loads `AnalysisContext` and renders plugins.
 - **Data contract**: `docs/DATA_CONTRACT.md` defines exact schemas. All data uses team slugs and slot IDs.
-- **Data output**: Single JSON files — `data/tournament.json`, `data/results.json`, `data/odds.json`, `data/entries/player_brackets.json` (all gitignored)
-- **NCAA support**: Deferred. Only ESPN is implemented.
+- **Data files**: `data/tournament.json`, `data/results.json`, `data/odds.json`, `data/entries/player_brackets.json` — tracked in git.
+- **ESPN bracket fetching**: `src/extract_bracket.py` uses Playwright DOM extraction. Requires `ANTHROPIC_API_KEY`.
+- **CI**: Ruff lint + pytest + PR validation on every PR to main.
 
 ## How to run
 
 ```bash
-pip install -r requirements.txt && playwright install chromium
-# Set ANTHROPIC_API_KEY in .env
-python scripts/fetch_brackets.py     # fetch bracket picks
-python scripts/fetch_results.py      # fetch results + odds
-python scripts/run_scheduler.py      # start twice-daily scheduler
+pip install -r requirements.txt
+streamlit run app.py                    # launch web UI
+pytest                                  # run tests
+ruff check .                            # lint
+python scripts/validate_data.py         # validate data integrity
+python scripts/run_scenarios.py         # CLI scenario analysis
+python scripts/fetch_espn_bracket.py    # fetch bracket from ESPN (needs ANTHROPIC_API_KEY)
 ```
 
 ## How to extend
 
-To add a new data source or scraping target:
-1. Create `src/fetch_<thing>.py` following the pattern in `fetch_bracket.py`
-2. Write a detailed prompt telling Claude what to navigate and extract
-3. Call `run_agent(prompt, url, browser)` — it returns Claude's text response
-4. Use `extract_json_from_response()` to parse the JSON
-5. Save with `storage.save_*()` or add a new save function
+To add a new analysis plugin:
+1. Create `analyses/<name>.py` with required attrs: `TITLE`, `DESCRIPTION`, `CATEGORY`, `ORDER`, `ICON`, `render(ctx)`
+2. Put business logic in `core/` — plugins are presentation only
+3. The plugin auto-discovers on app restart
+
+To add a new data source:
+1. Create a script in `scripts/`
+2. Use `src/storage.py` for reading/writing data files
+3. Follow schemas in `docs/DATA_CONTRACT.md`
 
 ## Project structure
 
 ```
-src/agent.py          — Core agent loop (reusable for any web task)
-src/browser.py        — Playwright browser + action execution
-src/fetch_bracket.py  — ESPN bracket extraction
-src/fetch_results.py  — Game results extraction
-src/fetch_odds.py     — Betting odds extraction
-src/models.py         — Prompt schema helpers (aligned with docs/DATA_CONTRACT.md)
-src/storage.py        — JSON file read/write
-scripts/              — CLI entry points + scheduler
-config.yaml           — All configuration
+core/scoring.py        — ESPN scoring (10/20/40/80/160/320 per round)
+core/scenarios.py      — Brute-force + Monte Carlo scenario engines
+core/tournament.py     — Game tree traversal, remaining slots, team paths
+core/comparison.py     — H2H diffs, pick popularity, chalk scores
+core/context.py        — Central data object (loads + caches everything)
+core/loader.py         — Data loading + bracket tree validation
+core/models.py         — Dataclasses (Team, GameSlot, Results, PlayerEntry, etc.)
+core/narrative.py      — Template-based text descriptions
+analyses/              — Auto-discovered Streamlit plugins (presentation only)
+app.py                 — Streamlit web UI entry point
+src/extract_bracket.py — ESPN bracket extraction via Playwright DOM
+src/models.py          — Prompt schema helpers
+src/storage.py         — JSON file read/write
+scripts/               — CLI: validation, scenarios, bracket fetching, CI scripts
+tests/                 — pytest test suite
+docs/DATA_CONTRACT.md  — Data schemas
+config.yaml            — Configuration
+pyproject.toml         — pytest + ruff config
+.github/workflows/     — CI pipeline (lint, test, PR validation, review checklist)
 ```
+
+## Analysis integrity
+
+**The scope of a claim must never exceed the scope of the evidence.**
+
+When analysis is narrowed (e.g. comparing two players instead of the full pool), any conclusions must stay within that narrowed scope. Before publishing or presenting any finding:
+
+1. **Label the scope.** State explicitly what was analyzed and what was excluded. "This compares Player A vs Player B only" means you cannot claim outcomes about the full leaderboard.
+2. **Validate every claim against its evidence.** If a conclusion requires data outside the current scope (e.g. other players, other systems, other time periods), either widen the analysis or qualify the claim.
+3. **Red-team before publishing.** Ask: "Is there a scenario where this claim is false?" If the answer requires context outside the analysis scope, the claim is leaking.
+4. **Distinguish relative from absolute.** "A beats B" (relative, bilateral) is not the same as "A wins" (absolute, pool-wide). Use precise language.
+
+This applies to all analysis — bracket comparisons, data summaries, narratives, dashboards. A correct number with the wrong framing is a wrong answer.
+
+### Scope block (Layer 1)
+
+Before presenting any analysis findings, output a scope block in the working conversation:
+
+```
+SCOPE: [what was analyzed]
+EXCLUDED: [what was not analyzed]
+CAN CLAIM: [conclusions the evidence supports]
+CANNOT CLAIM: [conclusions that would require broader data]
+```
+
+This block is for the working conversation only — it does not appear in final deliverables (narratives, dashboards, plugin text). Its purpose is to make scope visible so both the agent and the user can catch leaking claims before they're published.
+
+### Analysis workflow (Layer 2)
+
+When producing any analysis narrative, summary, or data-driven text intended for an audience, follow this sequence:
+
+**Step 1: Assemble the evidence packet first.** Before writing a single sentence of narrative, compile all supporting data: scores, scenarios, pick breakdowns, seedings, round-by-round results — everything a claim might need. If you're going to reference it, document it. You cannot claim what you haven't documented.
+
+**Step 2: Write the narrative constrained by the evidence.** Every factual claim must trace to something in the evidence packet. If it's not in the packet, don't write it.
+
+**Step 3: Self-review against the scope block.** Walk through every claim in the draft and check: (a) is this in the "CAN CLAIM" list? (b) does the evidence packet contain the supporting data? (c) is any conditional claim stated with its conditions? Fix issues before proceeding.
+
+**Step 4: Red-team review.** Launch the red-team sub-agent (`.claude/agents/red-team-reviewer.md`) with the scope declaration, complete evidence packet, and draft text. The agent's sole job is to find claims that are false, overstated, or unsupported. The invoker is responsible for the completeness of the evidence packet. If the agent flags a claim as unsupported, either provide the missing evidence or cut the claim. The burden of proof is on the claimant, not the reviewer.
+
+**Target: one self-review + one red-team pass = done.** If the red-team finds issues that a self-review should have caught (basic scope leaks, unverified claims, arithmetic errors), that's a process failure — not a reason for another loop.
 
 ## Important constraints
 
-- Requires `ANTHROPIC_API_KEY` environment variable
-- ESPN is a JS SPA — cannot be scraped with simple HTTP requests, must use browser
-- Agent loop has a 30-iteration safety cap (`MAX_ITERATIONS` in `agent.py`)
-- Set `browser.headless: false` in config.yaml to watch the browser during development
+- Requires `ANTHROPIC_API_KEY` environment variable for ESPN bracket fetching (not needed for analysis/UI)
+- ESPN is a JS SPA — bracket fetching uses Playwright DOM extraction
+- CI requires `ruff check` + `pytest` to pass before merge
+- PR descriptions must include 6 required sections (see PR conventions below)
 
 ## PR conventions
 
