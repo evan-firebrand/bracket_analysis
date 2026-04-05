@@ -88,13 +88,19 @@ CANNOT CLAIM: [conclusions that would require broader data]
 
 This block is for the working conversation only — it does not appear in final deliverables (narratives, dashboards, plugin text). Its purpose is to make scope visible so both the agent and the user can catch leaking claims before they're published.
 
-### Red-team review (Layer 2)
+### Analysis workflow (Layer 2)
 
-Before presenting any analysis narrative, summary, or data-driven text intended for an audience, launch a red-team sub-agent. The agent receives the draft text and the underlying data, and its sole job is to find claims that are false, overstated, or unsupported by the analysis scope. See `.claude/agents/red-team-reviewer.md` for the agent definition.
+When producing any analysis narrative, summary, or data-driven text intended for an audience, follow this sequence:
 
-The invoker is responsible for providing a complete evidence packet — scope declaration, all supporting data, and the draft text. If the agent flags a claim as unsupported, either provide the missing evidence or cut the claim. The burden of proof is on the claimant, not the reviewer.
+**Step 1: Assemble the evidence packet first.** Before writing a single sentence of narrative, compile all supporting data: scores, scenarios, pick breakdowns, seedings, round-by-round results — everything a claim might need. If you're going to reference it, document it. You cannot claim what you haven't documented.
 
-If the red-team agent finds issues, fix them before presenting to the user. If it passes clean, proceed.
+**Step 2: Write the narrative constrained by the evidence.** Every factual claim must trace to something in the evidence packet. If it's not in the packet, don't write it.
+
+**Step 3: Self-review against the scope block.** Walk through every claim in the draft and check: (a) is this in the "CAN CLAIM" list? (b) does the evidence packet contain the supporting data? (c) is any conditional claim stated with its conditions? Fix issues before proceeding.
+
+**Step 4: Red-team review.** Launch the red-team sub-agent (`.claude/agents/red-team-reviewer.md`) with the scope declaration, complete evidence packet, and draft text. The agent's sole job is to find claims that are false, overstated, or unsupported. The invoker is responsible for the completeness of the evidence packet. If the agent flags a claim as unsupported, either provide the missing evidence or cut the claim. The burden of proof is on the claimant, not the reviewer.
+
+**Target: one self-review + one red-team pass = done.** If the red-team finds issues that a self-review should have caught (basic scope leaks, unverified claims, arithmetic errors), that's a process failure — not a reason for another loop.
 
 ## Important constraints
 
