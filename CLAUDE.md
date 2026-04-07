@@ -12,6 +12,7 @@ NCAA tournament bracket analysis app. Scores bracket picks, compares players hea
 - **Data contract**: `docs/DATA_CONTRACT.md` defines exact schemas. All data uses team slugs and slot IDs.
 - **Data files**: `data/tournament.json`, `data/results.json`, `data/odds.json`, `data/entries/player_brackets.json` — tracked in git.
 - **CI**: Ruff lint + pytest + PR validation on every PR to main.
+- **Architecture decisions**: `docs/decisions/` — rationale for structural constraints, searchable from the repo
 
 ## How to run
 
@@ -121,6 +122,17 @@ When producing any analysis narrative, summary, or data-driven text intended for
 ## Branch hygiene
 
 Always `git fetch origin main && git merge origin/main` before starting work on a new branch. This prevents accidentally reverting previously merged work when your branch is based on a stale main.
+
+## Source of truth
+
+When sources conflict, resolve in this order:
+1. **The code** — always wins on behavior questions
+2. **`docs/DATA_CONTRACT.md`** — wins on data shape questions
+3. **`docs/decisions/`** — wins on "why is it structured this way" questions
+4. **`CLAUDE.md`** — wins on "how do I work in this repo" questions
+5. **PR descriptions** — canonical record of what changed and why, per feature
+
+**CLAUDE.md maintenance**: Update this file in the same PR whenever core architecture changes. If `core/` structure, data schemas, or plugin conventions change — update CLAUDE.md and add or update a `docs/decisions/` ADR.
 
 ## Important constraints
 
