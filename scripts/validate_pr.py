@@ -14,6 +14,7 @@ REQUIRED_SECTIONS = [
     "Decisions",
     "Testing",
     "Scope",
+    "Squash Commit",
 ]
 
 MIN_LINES_FOR_DETAIL = 2
