@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from analyses import discover_plugins, get_plugins_by_category
+from analyses import CATEGORY_ORDER, discover_plugins, get_plugins_by_category
 
 
 class TestPluginDiscovery:
@@ -37,6 +37,14 @@ class TestPluginDiscovery:
             i for i, p in enumerate(plugins) if p.category == "my_bracket"
         )
         assert standings_idx < my_bracket_idx
+
+    def test_all_plugins_use_declared_category(self):
+        plugins = discover_plugins()
+        for plugin in plugins:
+            assert plugin.category in CATEGORY_ORDER, (
+                f"Plugin {plugin.name} uses undeclared category "
+                f"{plugin.category!r}; allowed: {CATEGORY_ORDER}"
+            )
 
     def test_group_by_category(self):
         plugins = discover_plugins()

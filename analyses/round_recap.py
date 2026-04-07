@@ -12,7 +12,7 @@ from core.recap import RoundRecap, round_recap, standings_diff
 
 TITLE = "What Happened?"
 DESCRIPTION = "Round recap — results, upsets, and standings impact"
-CATEGORY = "results"
+CATEGORY = "stories"
 ORDER = 10
 ICON = "\U0001f4cb"  # clipboard
 
