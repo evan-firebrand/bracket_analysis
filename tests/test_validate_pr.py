@@ -36,6 +36,11 @@ Tested with both complete and partial bracket data.
 ## Scope
 No scope creep. All requirements met.
 Deferred: custom scoring profiles (not requested).
+
+## Squash Commit
+feat(scoring): add weighted round multipliers
+
+ESPN-standard 10/20/40/80/160/320 scoring. Custom profiles deferred.
 """
 
 
@@ -79,7 +84,7 @@ class TestValidatePrBody:
 
     def test_all_sections_missing(self):
         errors, warnings = validate_pr_body("Just some random text with no sections.")
-        assert len(errors) == 6
+        assert len(errors) == 7
 
     def test_thin_content_warns(self):
         body = VALID_PR_BODY.replace(
