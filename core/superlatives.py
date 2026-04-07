@@ -5,7 +5,7 @@ Pure business logic. No Streamlit imports.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from core.comparison import chalk_score, contrarian_picks, pick_popularity
 from core.models import PlayerEntry, Results, TournamentStructure

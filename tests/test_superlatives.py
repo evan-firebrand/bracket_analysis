@@ -9,13 +9,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from core.comparison import chalk_score
 from core.loader import load_entries, load_results, load_tournament
-from core.models import GameResult, PlayerEntry, Results, TournamentStructure
+from core.models import GameResult, Results
 from core.superlatives import (
     Superlative,
+    _biggest_bust,
     _chaos_agent,
     _contrarian_king,
-    _biggest_bust,
     _crystal_ball,
     _hot_finisher,
     _most_accurate,
@@ -27,8 +28,6 @@ from core.superlatives import (
     compute_superlatives,
     player_award_summary,
 )
-from core.comparison import chalk_score
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
