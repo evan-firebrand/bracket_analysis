@@ -18,8 +18,9 @@ from dataclasses import dataclass
 
 from core.comparison import (
     agreement_matrix as compute_agreement_matrix,
+)
+from core.comparison import (
     chalk_score as compute_chalk_score,
-    pick_popularity as compute_pick_popularity,
 )
 from core.models import PlayerEntry, Results, ScoredEntry, TournamentStructure
 from core.scoring import POINTS_PER_ROUND, ROUND_NAMES
@@ -68,7 +69,6 @@ def compute_awards(
 
     # Pre-compute shared data once
     chalk_scores = compute_chalk_score(entries, tournament)
-    popularity = compute_pick_popularity(entries, tournament)
     matrix = compute_agreement_matrix(entries, tournament)
     r1_slots = tournament.get_round_slots(1)
     r1_slot_ids = {s.slot_id for s in r1_slots}
