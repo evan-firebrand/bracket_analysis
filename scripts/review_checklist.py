@@ -48,6 +48,18 @@ RULES: list[tuple[str, callable, str]] = [
         lambda f: f == "config.yaml",
         "Config changed — did you document new keys in `README.md` or `CLAUDE.md`?",
     ),
+    (
+        "claude-md-sync",
+        lambda f: (f.startswith("core/") and f.endswith(".py"))
+        or f.startswith("analyses/")
+        or f == "docs/DATA_CONTRACT.md",
+        "Architecture may have changed — did you update `CLAUDE.md` and/or add a `docs/decisions/` ADR?",
+    ),
+    (
+        "adr-status",
+        lambda f: f.startswith("docs/decisions/") and f.endswith(".md") and "README" not in f,
+        "ADR changed — is the `## Status` field set correctly (Active / Superseded / Deprecated)?",
+    ),
 ]
 
 
