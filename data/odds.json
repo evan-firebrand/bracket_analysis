@@ -1,37 +1,21 @@
 {
-  "last_updated": "2026-04-01T00:00:00Z",
+  "last_updated": "2026-04-05T00:00:00Z",
   "source": "DraftKings",
   "teams": {
-    "illinois": {
-      "championship": 0.27,
+    "michigan": {
+      "championship": 0.718,
       "round_probs": {
         "ff": 1.0,
-        "championship": 0.543,
-        "winner": 0.27
+        "championship": 1.0,
+        "winner": 0.718
       }
     },
     "uconn": {
-      "championship": 0.23,
+      "championship": 0.282,
       "round_probs": {
         "ff": 1.0,
-        "championship": 0.457,
-        "winner": 0.23
-      }
-    },
-    "michigan": {
-      "championship": 0.27,
-      "round_probs": {
-        "ff": 1.0,
-        "championship": 0.532,
-        "winner": 0.27
-      }
-    },
-    "arizona": {
-      "championship": 0.23,
-      "round_probs": {
-        "ff": 1.0,
-        "championship": 0.468,
-        "winner": 0.23
+        "championship": 1.0,
+        "winner": 0.282
       }
     }
   },
@@ -819,6 +803,27 @@
         "under_odds": -110,
         "game_date": "2026-04-04",
         "game_time": "19:49 ET"
+      }
+    ],
+    "championship": [
+      {
+        "slot_id": "r6_championship",
+        "team1": "michigan",
+        "seed1": 1,
+        "team2": "uconn",
+        "seed2": 2,
+        "spread": -6.5,
+        "spread_odds_team1": -112,
+        "spread_odds_team2": -108,
+        "moneyline_team1": -298,
+        "moneyline_team2": 240,
+        "over_under": 144.5,
+        "over_odds": -105,
+        "under_odds": -115,
+        "game_date": "2026-04-06",
+        "game_time": "19:50 ET",
+        "venue": "Lucas Oil Stadium, Indianapolis",
+        "tv": "TBS/truTV/Max"
       }
     ]
   }
