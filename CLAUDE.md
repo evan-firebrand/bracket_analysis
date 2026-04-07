@@ -118,6 +118,10 @@ When producing any analysis narrative, summary, or data-driven text intended for
 - If scope creeps mid-session, stop and open a separate branch for the secondary change
 - The PR title should not require the word "and" — if it does, split it
 
+## Branch hygiene
+
+Always `git fetch origin main && git merge origin/main` before starting work on a new branch. This prevents accidentally reverting previously merged work when your branch is based on a stale main.
+
 ## Important constraints
 
 - CI requires `ruff check` + `pytest` to pass before merge
