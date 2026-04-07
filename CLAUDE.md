@@ -2,7 +2,7 @@
 
 ## What is this repo?
 
-NCAA tournament bracket analysis app. Scores bracket picks, compares players head-to-head, runs scenario simulations (brute-force + Monte Carlo), and presents everything in a Streamlit web UI. Data collected from ESPN and DraftKings.
+NCAA tournament bracket analysis app. Scores bracket picks, compares players head-to-head, runs scenario simulations (brute-force + Monte Carlo), and presents everything in a Streamlit web UI.
 
 ## Key things to know
 
@@ -11,7 +11,6 @@ NCAA tournament bracket analysis app. Scores bracket picks, compares players hea
 - **Web UI**: `app.py` is the Streamlit entry point. Loads `AnalysisContext` and renders plugins.
 - **Data contract**: `docs/DATA_CONTRACT.md` defines exact schemas. All data uses team slugs and slot IDs.
 - **Data files**: `data/tournament.json`, `data/results.json`, `data/odds.json`, `data/entries/player_brackets.json` — tracked in git.
-- **ESPN bracket fetching**: `src/extract_bracket.py` uses Playwright DOM extraction. Requires `ANTHROPIC_API_KEY`.
 - **CI**: Ruff lint + pytest + PR validation on every PR to main.
 
 ## How to run
@@ -23,7 +22,6 @@ pytest                                  # run tests
 ruff check .                            # lint
 python scripts/validate_data.py         # validate data integrity
 python scripts/run_scenarios.py         # CLI scenario analysis
-python scripts/fetch_espn_bracket.py    # fetch bracket from ESPN (needs ANTHROPIC_API_KEY)
 ```
 
 ## How to extend
@@ -51,10 +49,8 @@ core/models.py         — Dataclasses (Team, GameSlot, Results, PlayerEntry, et
 core/narrative.py      — Template-based text descriptions
 analyses/              — Auto-discovered Streamlit plugins (presentation only)
 app.py                 — Streamlit web UI entry point
-src/extract_bracket.py — ESPN bracket extraction via Playwright DOM
-src/models.py          — Prompt schema helpers
 src/storage.py         — JSON file read/write
-scripts/               — CLI: validation, scenarios, bracket fetching, CI scripts
+scripts/               — CLI: validation, scenarios, CI scripts
 tests/                 — pytest test suite
 docs/DATA_CONTRACT.md  — Data schemas
 config.yaml            — Configuration
@@ -102,10 +98,28 @@ When producing any analysis narrative, summary, or data-driven text intended for
 
 **Target: one self-review + one red-team pass = done.** If the red-team finds issues that a self-review should have caught (basic scope leaks, unverified claims, arithmetic errors), that's a process failure — not a reason for another loop.
 
+## Git workflow
+
+- **Branch strategy**: Never commit directly to `main`. One branch per feature/fix.
+  - Branch naming: `feature/<short-desc>`, `fix/<short-desc>`
+  - `main` is protected: CI must pass + branch must be up to date before merging
+- **Commit messages**: Imperative mood, scoped — `fix(scoring): handle bye-week teams in round 1`
+  - Type prefixes: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
+- **Commit hygiene**: One logical change per commit. Stage specific files, not `git add -A`.
+- **Before pushing**: Always run `ruff check . && pytest` locally first.
+- **Keeping branches fresh**: `git fetch origin && git rebase origin/main` (rebase, not merge)
+
+## Claude Code session discipline
+
+- **One session = one atomic change** — one PR, one logical unit (no "fix X AND add Y")
+- State the goal explicitly at the start of each session
+- Confirm which branch you're on before any work begins: `git status`
+- Review staged changes before Claude commits: `git diff --staged`
+- If scope creeps mid-session, stop and open a separate branch for the secondary change
+- The PR title should not require the word "and" — if it does, split it
+
 ## Important constraints
 
-- Requires `ANTHROPIC_API_KEY` environment variable for ESPN bracket fetching (not needed for analysis/UI)
-- ESPN is a JS SPA — bracket fetching uses Playwright DOM extraction
 - CI requires `ruff check` + `pytest` to pass before merge
 - PR descriptions must include 6 required sections (see PR conventions below)
 
@@ -123,3 +137,14 @@ Before opening a PR, do a self-assessment. Every PR description MUST include the
 CI hard-fails if any section is missing or empty. Thin sections (≤1 line) get an advisory comment. A PR template is provided — fill in every section before submitting.
 
 After opening a PR, subscribe to PR activity (`subscribe_pr_activity`) and wait for CI to complete. CI will post a review checklist comment based on which files you changed (e.g. "core/ changed — did you add tests?"). Review each checklist item and address any gaps before requesting human review.
+
+## Deployment
+
+- **Hosting**: Streamlit Community Cloud (free, no credit card required)
+  - Connect GitHub repo → auto-deploys on push to `main`
+  - Apps sleep after 7 days of inactivity; restart automatically on next visit
+- **CI/CD**: GitHub Actions (configured in `.github/workflows/`)
+  - `lint-and-test`: runs ruff + pytest on every push/PR
+  - `validate-pr`: hard-fails if any of the 6 PR description sections are missing or empty
+  - `review-checklist`: posts advisory comments based on which files changed
+  - Always fix CI locally before pushing: `ruff check . && pytest`
