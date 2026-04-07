@@ -106,6 +106,7 @@ When producing any analysis narrative, summary, or data-driven text intended for
   - `main` is protected: CI must pass + branch must be up to date before merging
 - **Commit messages**: Imperative mood, scoped — `fix(scoring): handle bye-week teams in round 1`
   - Type prefixes: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
+- **Squash commit body**: When merging a PR on GitHub, paste the `## Squash Commit` section from the PR description into the commit body text box. This makes `git log` self-documenting without requiring GitHub access.
 - **Commit hygiene**: One logical change per commit. Stage specific files, not `git add -A`.
 - **Before pushing**: Always run `ruff check . && pytest` locally first.
 - **Keeping branches fresh**: `git fetch origin && git rebase origin/main` (rebase, not merge)
@@ -137,11 +138,11 @@ When sources conflict, resolve in this order:
 ## Important constraints
 
 - CI requires `ruff check` + `pytest` to pass before merge
-- PR descriptions must include 6 required sections (see PR conventions below)
+- PR descriptions must include 7 required sections (see PR conventions below)
 
 ## PR conventions
 
-Before opening a PR, do a self-assessment. Every PR description MUST include these 6 sections with real content (not just template placeholders):
+Before opening a PR, do a self-assessment. Every PR description MUST include these 7 sections with real content (not just template placeholders):
 
 - **## Requirements** — What was asked for. Copy or summarize the original request.
 - **## Solution** — What was built. Describe the approach and key files changed.
@@ -149,6 +150,7 @@ Before opening a PR, do a self-assessment. Every PR description MUST include the
 - **## Decisions** — Design choices, tradeoffs, alternatives you considered.
 - **## Testing** — What you tested, how, and results with numbers (e.g. "14 → 30 tests, all passing").
 - **## Scope** — Was there scope creep? Unmet requirements? What was deferred and why?
+- **## Squash Commit** — The exact text to paste into GitHub's commit body when squash-merging. Line 1 matches the PR title. Lines 2-3 summarize what was built, the key constraint or decision, and what was deferred.
 
 CI hard-fails if any section is missing or empty. Thin sections (≤1 line) get an advisory comment. A PR template is provided — fill in every section before submitting.
 

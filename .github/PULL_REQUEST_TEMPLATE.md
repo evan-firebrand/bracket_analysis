@@ -15,3 +15,8 @@
 
 ## Scope
 <!-- Scope creep? Unmet requirements? What was deferred and why? -->
+
+## Squash Commit
+<!-- Paste this into GitHub's commit body field when squash-merging. -->
+<!-- Line 1: matches the PR title exactly -->
+<!-- Lines 2-3: what was built, key constraint or decision, what was deferred -->
