@@ -42,6 +42,10 @@ class TestGenerateChecklist:
         test_items = [i for i in items if "update or add tests" in i]
         assert len(test_items) == 1
 
+    def test_ai_layer_change_triggers_ai_test_reminder(self):
+        items = generate_checklist(["core/ai/agent.py"])
+        assert any("test_ai_" in item for item in items)
+
     def test_empty_input(self):
         items = generate_checklist([])
         assert items == []

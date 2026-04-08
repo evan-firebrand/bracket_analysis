@@ -11,7 +11,7 @@ All tournament data lives in `data/` and is tracked in git. See `docs/DATA_CONTR
 | `data/tournament.json` | 64 teams, 63 slots, bracket tree | 64 teams |
 | `data/results.json` | Completed game results with scores | 60 games (through Elite 8) |
 | `data/odds.json` | DraftKings betting lines by round | 58 games (R1 + R32 + S16 + FF) |
-| `data/entries/player_brackets.json` | Player bracket picks | Evan (63 picks), Rebecca (63 picks via ESPN) |
+| `data/entries/player_brackets.json` | Player bracket picks | 7 players (Evan, Rebecca, Elizabeth, Hugh, tvenie, scrapr + 1 more) |
 
 ### Data Sources
 
@@ -33,7 +33,18 @@ core/                       # Pure Python analysis (no Streamlit imports)
   context.py                # Central data object (loads + caches everything)
   loader.py                 # Data loading + bracket tree validation
   models.py                 # Dataclasses (Team, GameSlot, Results, PlayerEntry)
-  narrative.py              # Template-based text descriptions
+  narrative.py              # Template-based text descriptions (fallback)
+  metrics.py                # Win equity, separation, must-have outcomes
+  awards.py                 # End-of-tournament superlatives
+  recap.py                  # Round recap generation
+  superlatives.py           # Player distinction logic
+  ai/                       # Claude integration (Anthropic tool-use)
+    client.py               # Anthropic client singleton
+    tools.py                # Tool schemas + adapters wrapping core/ functions
+    agent.py                # Claude tool-use loop: prompt → tool_use → execute
+    lenses.py               # System prompts + model config per output mode
+    evidence.py             # Evidence packet capture + audit logging
+    cache.py                # Content cache keyed on (lens, viewer, data_hash)
 
 analyses/                   # Auto-discovered Streamlit plugins (presentation only)
   leaderboard.py            # Standings and rankings
@@ -41,8 +52,15 @@ analyses/                   # Auto-discovered Streamlit plugins (presentation on
   head_to_head.py           # Player comparison diffs
   group_picks.py            # Group-wide pick analysis
   win_probability.py        # Win% dashboard and critical games
-  scenarios_whatif.py        # Game-by-game what-if tool
+  scenarios_whatif.py       # Game-by-game what-if tool
   race.py                   # Race to the finish tracker
+  my_position.py            # Win equity, separation, must-have outcomes, danger games
+  threats.py                # Who you need to beat and how likely you are to do it
+  rooting_guide.py          # What to root for, what to fear, what doesn't matter
+  pool_exposure.py          # Where the pool is crowded and where you're alone
+  round_recap.py            # Round results, upsets, and standings impact
+  superlatives.py           # End-of-tournament awards and distinctions
+  ask_claude.py             # Freeform AI chat about brackets, scenarios, and odds
 
 app.py                      # Streamlit web UI entry point
 
@@ -51,7 +69,7 @@ data/                       # Tournament data (tracked in git)
   results.json              # Game results keyed by slot_id
   odds.json                 # DraftKings lines by round
   entries/
-    player_brackets.json    # All player bracket picks
+    player_brackets.json    # All player bracket picks (7 players)
 
 src/
   extract_bracket.py        # ESPN bracket extraction via Playwright DOM
@@ -62,7 +80,7 @@ scripts/
   validate_data.py          # Structural + score sanity validation
   verify_points.py          # Team point tally cross-check
   verify_results.py         # Web cross-reference against ESPN
-  run_scenarios.py          # CLI scenario analysis
+  generate_content.py       # Pre-generate AI content to warm the cache
   fetch_espn_bracket.py     # Fetch bracket from ESPN group
   fetch_batch_brackets.py   # Batch fetch multiple brackets
   validate_pr.py            # PR description validation (used by CI)
@@ -74,16 +92,22 @@ tests/                      # pytest test suite
   test_comparisons.py       # Comparison logic tests
   test_plugins.py           # Plugin discovery tests
   test_odds_integration.py  # Odds integration tests
+  test_ai_agent.py          # AI agent loop tests
+  test_ai_tools.py          # AI tool schema tests
+  test_ai_cache.py          # Content cache tests
+  test_ai_evidence.py       # Evidence capture tests
+  test_ai_context.py        # AI context integration tests
   test_validate_pr.py       # PR validation tests
   test_review_checklist.py  # Review checklist tests
   fixtures/                 # Test data (mini tournament)
 
 docs/
   DATA_CONTRACT.md          # Exact schemas for all data files
+  decisions/                # Architecture Decision Records (ADRs)
 
 .github/
   workflows/ci.yml          # CI: ruff + pytest + PR validation + review checklist
-  PULL_REQUEST_TEMPLATE.md  # 6-section PR template
+  PULL_REQUEST_TEMPLATE.md  # 7-section PR template (incl. Squash Commit)
 
 config.yaml                 # Data directory and source URLs
 pyproject.toml              # pytest + ruff config
@@ -122,7 +146,7 @@ ruff check .        # lint
 ```
 
 CI runs both on every PR to `main`. Additionally:
-- **PR validation**: hard-fails if any of the 6 required sections are missing from the PR description
+- **PR validation**: hard-fails if any of the 7 required sections are missing from the PR description
 - **Review checklist**: posts an advisory comment based on which files changed
 
 ## Setup

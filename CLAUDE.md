@@ -23,7 +23,6 @@ streamlit run app.py                    # launch web UI
 pytest                                  # run tests
 ruff check .                            # lint
 python scripts/validate_data.py         # validate data integrity
-python scripts/run_scenarios.py         # CLI scenario analysis
 ```
 
 ## How to extend

@@ -33,6 +33,11 @@ RULES: list[tuple[str, callable, str]] = [
         "Scoring logic changed — did you update `tests/test_scoring.py`?",
     ),
     (
+        "ai-tests",
+        lambda f: f.startswith("core/ai/") and f.endswith(".py"),
+        "AI layer changed — did you update or add tests in `tests/test_ai_*.py`?",
+    ),
+    (
         "plugin-attrs",
         lambda f: f.startswith("analyses/") and f.endswith(".py") and f != "analyses/__init__.py",
         "Analysis plugin changed — does it have all required attrs"
