@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -151,3 +151,73 @@ class TestPluginAiCopyMigration:
         assert any("STATIC" in t for t in captured), (
             f"expected STATIC headline to be rendered, got {captured!r}"
         )
+
+
+class TestAskClaudePlugin:
+    def test_plugin_discovered(self):
+        plugins = discover_plugins()
+        names = [p.name for p in plugins]
+        assert "ask_claude" in names
+
+        ask_claude = next(p for p in plugins if p.name == "ask_claude")
+        assert ask_claude.title == "Ask Claude"
+        assert ask_claude.category == "ai"
+        assert ask_claude.icon  # non-empty
+        assert ask_claude.order > 0
+        assert callable(ask_claude.render)
+
+    def test_history_helpers(self):
+        from analyses import ask_claude
+
+        # Replace st.session_state with a fresh dict-like
+        fake_state = {}
+        with patch.object(ask_claude.st, "session_state", fake_state):
+            history = ask_claude._get_history()
+            assert history == []
+            history.append({"role": "user", "content": "hi"})
+            assert ask_claude._get_history() == [{"role": "user", "content": "hi"}]
+            ask_claude._reset_history()
+            assert ask_claude._get_history() == []
+
+    def test_render_streams_through_answer_question(self):
+        """Plugin must call ctx.answer_question with the new question + prior history."""
+        from analyses import ask_claude
+
+        # Simulate a session with one prior turn already in history
+        fake_state = {
+            "viewing_player": "Alice",
+            "ask_claude_history": [
+                {"role": "user", "content": "earlier question"},
+                {"role": "assistant", "content": "earlier answer"},
+            ],
+        }
+
+        # Mock the user submitting a new question via chat_input
+        ctx = MagicMock()
+        ctx.answer_question = MagicMock(return_value=iter(["streamed ", "answer"]))
+
+        with patch.object(ask_claude.st, "session_state", fake_state), \
+             patch.object(ask_claude.st, "chat_input", return_value="new question"), \
+             patch.object(ask_claude.st, "chat_message"), \
+             patch.object(ask_claude.st, "write_stream", return_value="streamed answer"), \
+             patch.object(ask_claude.st, "header"), \
+             patch.object(ask_claude.st, "caption"), \
+             patch.object(ask_claude.st, "columns", return_value=[MagicMock(), MagicMock()]), \
+             patch.object(ask_claude.st, "button", return_value=False), \
+             patch.object(ask_claude.st, "markdown"):
+            ask_claude.render(ctx)
+
+        # Confirm answer_question was called with viewer + prior history (NOT including
+        # the just-appended user turn)
+        assert ctx.answer_question.call_count == 1
+        call_args = ctx.answer_question.call_args
+        assert call_args.args[0] == "new question"
+        assert call_args.kwargs["viewer"] == "Alice"
+        # prior_history should be the original 2 turns, not 3
+        assert len(call_args.kwargs["history"]) == 2
+        assert call_args.kwargs["history"][0]["content"] == "earlier question"
+
+        # The new user turn AND the assistant response should now be in history
+        assert len(fake_state["ask_claude_history"]) == 4
+        assert fake_state["ask_claude_history"][-2] == {"role": "user", "content": "new question"}
+        assert fake_state["ask_claude_history"][-1] == {"role": "assistant", "content": "streamed answer"}
