@@ -60,6 +60,22 @@ def main():
 
         st.divider()
 
+        # Global "Viewing as" player selector
+        config = _load_config()
+        my_player_name = config.get("app", {}).get("my_player_name", "")
+        player_names = ctx.player_names()
+        default_index = 0
+        if my_player_name and my_player_name in player_names:
+            default_index = player_names.index(my_player_name)
+        viewing_player = st.selectbox(
+            "Viewing as",
+            player_names,
+            index=default_index,
+        )
+        st.session_state["viewing_player"] = viewing_player
+
+        st.divider()
+
         # Build navigation from plugins
         page_options = {"Home": None}
         for cat, cat_plugins in plugins_by_cat.items():

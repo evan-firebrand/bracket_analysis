@@ -25,3 +25,6 @@ Thumbs.db
 .ruff_cache/
 .coverage
 htmlcov/
+
+# Agent worktrees (created by Claude Code isolation)
+.claude/worktrees/
