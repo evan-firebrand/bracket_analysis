@@ -13,10 +13,13 @@ from __future__ import annotations
 import builtins
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from core.comparison import head_to_head, pick_popularity
-from core.context import AnalysisContext
 from core.recap import round_recap
+
+if TYPE_CHECKING:
+    from core.context import AnalysisContext
 from core.scenarios import (
     best_path,
     clinch_scenarios,

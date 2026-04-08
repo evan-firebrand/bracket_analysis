@@ -33,9 +33,12 @@ def load_context() -> AnalysisContext:
 
 
 def main():
+    config = _load_config()
+
     # Load data
     try:
         ctx = load_context()
+        ctx.configure_ai(config.get("ai", {}) or {})
     except FileNotFoundError as e:
         st.error(f"Data file not found: {e}")
         st.info("Make sure data files exist in the `data/` directory.")
@@ -61,7 +64,6 @@ def main():
         st.divider()
 
         # Global "Viewing as" player selector
-        config = _load_config()
         my_player_name = config.get("app", {}).get("my_player_name", "")
         player_names = ctx.player_names()
         default_index = 0
