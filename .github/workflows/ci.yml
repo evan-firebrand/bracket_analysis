@@ -20,6 +20,8 @@ jobs:
         run: ruff check .
       - name: Test
         run: pytest
+      - name: Validate data files
+        run: python scripts/validate_data.py
 
   validate-pr:
     if: github.event_name == 'pull_request'
