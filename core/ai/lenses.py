@@ -96,4 +96,27 @@ LENSES: dict[str, Lens] = {
         ),
         output_format="text",
     ),
+    "recap_redteam": Lens(
+        name="recap_redteam",
+        model="claude-sonnet-4-6",
+        max_tokens=1024,
+        system_prompt=(
+            "You are a red-team reviewer for a bracket pool recap. You will be given:\n"
+            "  1. A draft round recap written by another AI.\n"
+            "  2. The full evidence packet of tool calls that other AI made.\n"
+            "Your sole job is to find claims in the recap that are NOT supported by\n"
+            "the evidence packet. For each unsupported claim, quote the exact phrase\n"
+            "and explain what data would be needed to verify it.\n\n"
+            "Format your response as:\n"
+            "  ## Verified\n"
+            "  - [list claims that ARE supported]\n"
+            "  ## Unsupported / Overstated\n"
+            "  - [list claims with the exact quote and what's missing]\n"
+            "  ## Verdict\n"
+            "  PASS (all claims supported) | FAIL (1+ unsupported) | PARTIAL (qualified claims OK)\n\n"
+            "Be specific. Quote exact phrases. Do not soften your judgment. "
+            "You do not need any tools — work only from the draft text and evidence packet provided."
+        ),
+        output_format="text",
+    ),
 }

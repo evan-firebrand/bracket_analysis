@@ -316,3 +316,97 @@ class AnalysisContext:
                 log_audit(packet, self._audit_dir)
         except Exception as exc:  # noqa: BLE001
             print(f"[ai] chat audit log failed: {exc}")
+
+    def generate_recap_with_redteam(
+        self,
+        page: str = "round_recap",
+        viewer: str | None = None,
+    ) -> tuple[str | None, str | None]:
+        """Generate a round recap and (optionally) a red-team review of it.
+
+        Returns ``(recap_text, redteam_text)``. ``redteam_text`` is ``None``
+        when ``ai.redteam_recap`` is disabled in config or when the red-team
+        pass fails. ``recap_text`` is ``None`` when AI is disabled or the
+        recap call fails.
+
+        The recap call goes through the live agent loop directly (not
+        ``generate_copy``) so we can capture the EvidencePacket and pass it
+        verbatim to the red-team pass. The recap result is still cached on
+        success and audited like any other ``generate_copy`` call.
+        """
+        if not self._ai_enabled or _ai_agent is None or EvidencePacket is None:
+            return None, None
+
+        viewer_key = viewer or "__anon__"
+        cached_evidence: dict | None = None
+        recap_text: str | None = None
+        evidence = None
+
+        # Cache hit?
+        if self._content_cache is not None:
+            cached = self._content_cache.get("recap", viewer_key, self.data_hash)
+            if cached is not None and cached.get("content"):
+                recap_text = cached["content"]
+                cached_evidence = cached.get("evidence")
+
+        if recap_text is None:
+            context_dict = {
+                "page": page,
+                "viewer": viewer,
+                "data_hash": self.data_hash,
+                "current_round": self.current_round(),
+                "games_remaining": self.games_remaining(),
+            }
+            try:
+                recap_text, evidence = _ai_agent.generate("recap", context_dict, self)
+            except _ai_agent.AIUnavailableError as exc:
+                print(f"[ai] recap unavailable: {exc}")
+                return None, None
+            except Exception as exc:  # noqa: BLE001
+                print(f"[ai] recap failed: {exc}")
+                return None, None
+
+            if self._content_cache is not None:
+                try:
+                    self._content_cache.put(
+                        "recap",
+                        viewer_key,
+                        self.data_hash,
+                        recap_text,
+                        evidence.to_dict(),
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    print(f"[ai] recap cache write failed: {exc}")
+
+            try:
+                log_audit(evidence, self._audit_dir)
+            except Exception as exc:  # noqa: BLE001
+                print(f"[ai] recap audit log failed: {exc}")
+
+        # Red-team disabled?
+        if not self._ai_config.get("redteam_recap", False):
+            return recap_text, None
+
+        # Build the evidence packet payload for the red-team prompt
+        if evidence is not None:
+            evidence_payload = evidence.to_dict()
+        elif cached_evidence is not None:
+            evidence_payload = cached_evidence
+        else:
+            evidence_payload = {"tool_calls": [], "scope_block": "(no evidence captured)"}
+
+        redteam_context = {
+            "page": page,
+            "viewer": viewer,
+            "draft_recap": recap_text,
+            "evidence_packet": evidence_payload,
+        }
+        try:
+            redteam_text, _redteam_packet = _ai_agent.generate(
+                "recap_redteam", redteam_context, self
+            )
+        except Exception as exc:  # noqa: BLE001 — red-team failure must not break recap
+            print(f"[ai] redteam pass failed: {exc}")
+            return recap_text, None
+
+        return recap_text, redteam_text

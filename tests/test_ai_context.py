@@ -247,3 +247,114 @@ class TestAnswerQuestion:
             # Should not raise; should yield an error line
             assert len(tokens) == 1
             assert "Error" in tokens[0] or "kaboom" in tokens[0]
+
+
+# --- generate_recap_with_redteam ---
+
+class TestRecapRedTeam:
+    def _config(self, tmp_path, redteam: bool) -> dict:
+        return {
+            "enabled": True,
+            "cache_enabled": False,
+            "cache_dir": str(tmp_path / "cache"),
+            "audit_dir": str(tmp_path / "audit"),
+            "redteam_recap": redteam,
+        }
+
+    def test_redteam_disabled_returns_none(
+        self, ctx: AnalysisContext, tmp_path
+    ) -> None:
+        ctx.configure_ai(self._config(tmp_path, redteam=False))
+        packet = EvidencePacket(lens="recap", viewer="Alice")
+        with patch("core.context._ai_agent") as mock_agent, \
+             patch("core.context.log_audit"):
+            from core.ai.agent import AIUnavailableError
+            mock_agent.AIUnavailableError = AIUnavailableError
+            mock_agent.generate.return_value = ("draft recap", packet)
+
+            recap, redteam = ctx.generate_recap_with_redteam(viewer="Alice")
+            assert recap == "draft recap"
+            assert redteam is None
+            assert mock_agent.generate.call_count == 1
+            # Confirm we called the recap lens, not recap_redteam
+            assert mock_agent.generate.call_args.args[0] == "recap"
+
+    def test_redteam_enabled_calls_twice(
+        self, ctx: AnalysisContext, tmp_path
+    ) -> None:
+        ctx.configure_ai(self._config(tmp_path, redteam=True))
+        packet = EvidencePacket(lens="recap", viewer="Alice")
+        packet.record("get_leaderboard", {}, '{"leader": "Alice"}')
+        redteam_packet = EvidencePacket(lens="recap_redteam", viewer="Alice")
+
+        # Different return values per lens; assert via call order
+        def side_effect(lens, ctx_dict, ctx_arg):
+            if lens == "recap":
+                return ("draft recap text", packet)
+            if lens == "recap_redteam":
+                # Confirm the red-team prompt has the draft + evidence packet
+                assert ctx_dict["draft_recap"] == "draft recap text"
+                assert "tool_calls" in ctx_dict["evidence_packet"]
+                return ("## Verified\n- everything\n## Verdict\nPASS", redteam_packet)
+            raise AssertionError(f"unexpected lens: {lens}")
+
+        with patch("core.context._ai_agent") as mock_agent, \
+             patch("core.context.log_audit"):
+            from core.ai.agent import AIUnavailableError
+            mock_agent.AIUnavailableError = AIUnavailableError
+            mock_agent.generate.side_effect = side_effect
+
+            recap, redteam = ctx.generate_recap_with_redteam(viewer="Alice")
+            assert recap == "draft recap text"
+            assert redteam is not None and "Verdict" in redteam
+            assert mock_agent.generate.call_count == 2
+
+    def test_redteam_failure_returns_recap_only(
+        self, ctx: AnalysisContext, tmp_path
+    ) -> None:
+        ctx.configure_ai(self._config(tmp_path, redteam=True))
+        packet = EvidencePacket(lens="recap", viewer="Alice")
+
+        def side_effect(lens, ctx_dict, ctx_arg):
+            if lens == "recap":
+                return ("draft text", packet)
+            raise RuntimeError("redteam blew up")
+
+        with patch("core.context._ai_agent") as mock_agent, \
+             patch("core.context.log_audit"):
+            from core.ai.agent import AIUnavailableError
+            mock_agent.AIUnavailableError = AIUnavailableError
+            mock_agent.generate.side_effect = side_effect
+
+            recap, redteam = ctx.generate_recap_with_redteam(viewer="Alice")
+            assert recap == "draft text"
+            assert redteam is None
+            # Confirm both calls were attempted
+            assert mock_agent.generate.call_count == 2
+
+    def test_recap_failure_returns_none_none(
+        self, ctx: AnalysisContext, tmp_path
+    ) -> None:
+        ctx.configure_ai(self._config(tmp_path, redteam=True))
+        with patch("core.context._ai_agent") as mock_agent:
+            from core.ai.agent import AIUnavailableError
+            mock_agent.AIUnavailableError = AIUnavailableError
+            mock_agent.generate.side_effect = AIUnavailableError("no key")
+
+            recap, redteam = ctx.generate_recap_with_redteam(viewer="Alice")
+            assert recap is None
+            assert redteam is None
+            # Red-team must NOT be attempted when recap itself failed
+            assert mock_agent.generate.call_count == 1
+
+    def test_disabled_ai_returns_none_none(
+        self, ctx: AnalysisContext, tmp_path
+    ) -> None:
+        ctx.configure_ai({
+            "enabled": False,
+            "cache_dir": str(tmp_path / "cache"),
+            "redteam_recap": True,  # ignored because AI is off
+        })
+        recap, redteam = ctx.generate_recap_with_redteam(viewer="Alice")
+        assert recap is None
+        assert redteam is None
