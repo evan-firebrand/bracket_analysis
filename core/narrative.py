@@ -95,3 +95,69 @@ def ordinal(n: int) -> str:
     else:
         suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
     return f"{n}{suffix}"
+
+
+def describe_separation_index(sep: float) -> str:
+    """Describe a separation index in natural language."""
+    if sep >= 0.80:
+        return "fully differentiated \u2014 almost all your remaining upside is unique to you"
+    if sep >= 0.60:
+        return "highly differentiated \u2014 most of your remaining upside nobody else shares"
+    if sep >= 0.40:
+        return "moderately differentiated \u2014 a meaningful portion of your upside is unique"
+    if sep >= 0.20:
+        return "somewhat shared \u2014 much of your upside is duplicated by others"
+    if sep > 0:
+        return "heavily shared \u2014 almost all your remaining picks are held by others too"
+    return "fully shared \u2014 every remaining pick you have is also held by at least one other player"
+
+
+def describe_threat_type(
+    threat_type: str,
+    other_name: str,
+    score_gap: int,
+    overlap_pct: float,
+    separation: float,
+) -> str:
+    """Plain-English description of a threat classification."""
+    gap_str = f"{abs(score_gap)} pts ahead" if score_gap > 0 else f"{abs(score_gap)} pts behind"
+
+    if threat_type == "Shadow Twin":
+        return (
+            f"**{other_name}** has nearly identical picks to yours and is {gap_str}. "
+            f"Your scores will rise and fall together — the outcome of this H2H is "
+            f"mostly determined by who started with more points. "
+            f"There's little you can do to separate independently of them."
+        )
+    elif threat_type == "Direct Threat":
+        return (
+            f"**{other_name}** is {gap_str} with divergent remaining picks ({overlap_pct:.0%} overlap). "
+            f"They can outrun you through their own path, independent of what you do. "
+            f"Watch which of your divergence points resolves in their favor."
+        )
+    elif threat_type == "Fragile Leader":
+        return (
+            f"**{other_name}** leads by {abs(score_gap)} pts but has low unique upside ({separation:.0%} separation). "
+            f"Their lead is real but not well-protected — a few good outcomes for you "
+            f"and they're catchable. Don't need a miracle, just consistent execution."
+        )
+    elif threat_type == "Long-Shot Disruptor":
+        return (
+            f"**{other_name}** is {gap_str} and seems out of it, but {separation:.0%} of their "
+            f"remaining upside is unique. If their longshot picks land, they could surge. "
+            f"Watch their rare high-value picks — they're the only path they have."
+        )
+    return f"**{other_name}** is {gap_str} with {overlap_pct:.0%} pick overlap."
+
+
+def describe_outcome_label(label) -> str:
+    """Short label string for an outcome label enum value."""
+    from core.metrics import OutcomeLabel
+    descriptions = {
+        OutcomeLabel.FATAL: "fatal \u2014 ends your path",
+        OutcomeLabel.SURVIVAL: "survival \u2014 keeps you in it",
+        OutcomeLabel.SEPARATION: "separation \u2014 helps you more than the field",
+        OutcomeLabel.SHARED_NEUTRAL: "shared \u2014 doesn't differentiate",
+        OutcomeLabel.BLOCKING: "blocks you \u2014 mostly helps your rivals",
+    }
+    return descriptions.get(label, str(label))

@@ -37,6 +37,9 @@ class ScenarioResults:
     # Per-game analysis
     critical_games: list[CriticalGame] = field(default_factory=list)
 
+    # Pairwise finish tracking: (player_a, player_b) -> scenarios where a finishes ahead of b
+    pairwise_wins: dict[tuple[str, str], int] = field(default_factory=dict)
+
 
 @dataclass
 class GameProbability:
@@ -188,6 +191,7 @@ def brute_force_scenarios(
     finish_dist: dict[str, dict[int, int]] = {
         e.player_name: {} for e in entries
     }
+    pairwise_wins: dict[tuple[str, str], int] = {}
 
     # For critical game analysis: track wins per player when each game goes each way
     # slot_id -> {team_slug: {player: win_count}}
@@ -212,6 +216,13 @@ def brute_force_scenarios(
         # Record winner (position 1)
         winner_name = scores[0][0]
         win_counts[winner_name] += 1
+
+        # Record pairwise finishes
+        for i, (name_i, _) in enumerate(scores):
+            for j, (name_j, _) in enumerate(scores):
+                if i < j:
+                    key = (name_i, name_j)
+                    pairwise_wins[key] = pairwise_wins.get(key, 0) + 1
 
         # Record for critical game splits
         for slot_id in all_remaining:
@@ -253,6 +264,7 @@ def brute_force_scenarios(
         finish_distributions=finish_dist,
         is_eliminated=eliminated,
         critical_games=critical,
+        pairwise_wins=pairwise_wins,
     )
 
 
@@ -299,6 +311,7 @@ def monte_carlo_scenarios(
     finish_dist: dict[str, dict[int, int]] = {
         e.player_name: {} for e in entries
     }
+    pairwise_wins: dict[tuple[str, str], int] = {}
     game_win_splits: dict[str, dict[str, dict[str, int]]] = {}
 
     # Run simulations
@@ -338,6 +351,13 @@ def monte_carlo_scenarios(
         winner_name = scores[0][0]
         win_counts[winner_name] += 1
 
+        # Record pairwise finishes
+        for i, (name_i, _) in enumerate(scores):
+            for j, (name_j, _) in enumerate(scores):
+                if i < j:
+                    key = (name_i, name_j)
+                    pairwise_wins[key] = pairwise_wins.get(key, 0) + 1
+
         # Record for critical game splits
         for slot_id in all_remaining:
             result = hypo_results.get(slot_id)
@@ -374,6 +394,7 @@ def monte_carlo_scenarios(
         finish_distributions=finish_dist,
         is_eliminated=eliminated,
         critical_games=critical,
+        pairwise_wins=pairwise_wins,
     )
 
 
