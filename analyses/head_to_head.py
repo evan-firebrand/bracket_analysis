@@ -15,7 +15,6 @@ import streamlit as st
 from core.comparison import head_to_head
 from core.context import AnalysisContext
 from core.metrics import pairwise_beat_probability
-from core.narrative import ordinal
 from core.scenarios import run_scenarios
 from core.scoring import POINTS_PER_ROUND, ROUND_NAMES
 from core.tournament import get_remaining_slots
@@ -135,7 +134,7 @@ def _render_h2h_equity(ctx, player_a, player_b, scored_a, scored_b):
 
     # Narrative
     if abs(p_a_beats_b - 0.5) < 0.05:
-        st.info(f"This H2H is nearly a toss-up — either player can come out ahead.")
+        st.info("This H2H is nearly a toss-up — either player can come out ahead.")
     elif p_a_beats_b > 0.5:
         gap = scored_a.total_points - scored_b.total_points
         if gap > 0:

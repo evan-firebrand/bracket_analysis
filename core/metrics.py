@@ -266,7 +266,6 @@ def label_outcomes(
         return []
 
     user_base = scenario_results.win_counts.get(user_name, 0) / total
-    n_others = len(entries) - 1
 
     effects = []
 

@@ -12,14 +12,9 @@ import pandas as pd
 import streamlit as st
 
 from core.context import AnalysisContext
-from core.metrics import (
-    classify_threats,
-    pairwise_beat_probability,
-    separation_index_all,
-)
+from core.metrics import classify_threats
 from core.narrative import describe_threat_type, ordinal
 from core.scenarios import run_scenarios
-from core.scoring import ROUND_NAMES
 
 TITLE = "Threats"
 DESCRIPTION = "Who you need to beat and how likely you are to do it"
@@ -57,7 +52,6 @@ def render(ctx: AnalysisContext):
         st.info("No other players to analyze.")
         return
 
-    user_scored = ctx.get_scored(player)
     user_win_pct = sr.win_counts.get(player, 0) / sr.total_scenarios if sr.total_scenarios > 0 else 0
 
     # --- Headline ---
@@ -91,10 +85,8 @@ def render(ctx: AnalysisContext):
 def _render_threat_table(ctx, sr, threats, player):
     st.subheader("Threat Rankings")
 
-    total = sr.total_scenarios
     rows = []
     for t in threats:
-        other_scored = ctx.get_scored(t.other_player)
         gap_str = f"+{t.score_gap}" if t.score_gap > 0 else str(t.score_gap)
         rows.append({
             "Player": t.other_player,

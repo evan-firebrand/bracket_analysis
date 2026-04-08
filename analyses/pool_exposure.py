@@ -14,10 +14,10 @@ from collections import Counter
 import pandas as pd
 import streamlit as st
 
-from core.comparison import pick_popularity, team_exposure
+from core.comparison import pick_popularity
 from core.context import AnalysisContext
 from core.metrics import separation_index_all
-from core.scoring import POINTS_PER_ROUND, ROUND_NAMES, get_alive_teams
+from core.scoring import ROUND_NAMES, get_alive_teams
 
 TITLE = "Pool Exposure"
 DESCRIPTION = "Where the pool is crowded and where you're alone"
@@ -130,8 +130,6 @@ def _render_crowded_vs_rare_paths(ctx, popularity, n_players, alive):
         "A 'rare' path is unique upside."
     )
 
-    completed = set(ctx.results.results.keys())
-
     # Find championship slot
     champ_slot = next(
         (sid for sid, s in ctx.tournament.slots.items() if s.feeds_into is None),
@@ -164,7 +162,7 @@ def _render_crowded_vs_rare_paths(ctx, popularity, n_players, alive):
 
     if unique:
         st.markdown(
-            f"**Teams still alive that nobody picked to win**: "
+            "**Teams still alive that nobody picked to win**: "
             + ", ".join(name for name, _ in unique)
         )
 

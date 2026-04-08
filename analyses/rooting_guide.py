@@ -13,7 +13,7 @@ import streamlit as st
 
 from core.context import AnalysisContext
 from core.metrics import OutcomeLabel, label_outcomes
-from core.narrative import describe_outcome_label, ordinal
+from core.narrative import describe_outcome_label
 from core.scenarios import run_scenarios
 from core.scoring import ROUND_NAMES
 from core.tournament import get_remaining_games
@@ -84,11 +84,7 @@ def render(ctx: AnalysisContext):
 
 
 def _render_headline(ctx, sr, player, effects):
-    total = sr.total_scenarios
-    win_pct = sr.win_counts.get(player, 0) / total if total > 0 else 0
-
     fatal = [e for e in effects if e.label == OutcomeLabel.FATAL]
-    separation = [e for e in effects if e.label == OutcomeLabel.SEPARATION]
 
     best = max(effects, key=lambda e: e.win_equity_delta, default=None)
     worst = min(effects, key=lambda e: e.win_equity_delta, default=None)

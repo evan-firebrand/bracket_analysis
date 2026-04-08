@@ -151,7 +151,8 @@ def _render_finish_distribution(ctx, sr, player, total, n_players):
         # Cumulative highlights
         top1 = dist.get(1, 0) / total if total > 0 else 0
         top3 = sum(dist.get(p, 0) for p in [1, 2, 3]) / total if total > 0 else 0
-        bottom_half = sum(dist.get(p, 0) for p in range((n_players // 2) + 1, n_players + 1)) / total if total > 0 else 0
+        bottom_half_count = sum(dist.get(p, 0) for p in range((n_players // 2) + 1, n_players + 1))
+        bottom_half = bottom_half_count / total if total > 0 else 0
         st.metric("Win", f"{top1:.1%}")
         st.metric("Top 3", f"{top3:.1%}")
         st.metric("Bottom Half", f"{bottom_half:.1%}")
@@ -197,14 +198,12 @@ def _render_outcome_guide(ctx, sr, player, entry):
     fatal = [e for e in effects if e.label == OutcomeLabel.FATAL]
     separation = [e for e in effects if e.label == OutcomeLabel.SEPARATION]
     survival = [e for e in effects if e.label == OutcomeLabel.SURVIVAL]
-    blocking = [e for e in effects if e.label == OutcomeLabel.BLOCKING]
 
     # Fatal outcomes first
     if fatal:
         st.markdown("**Must avoid — fatal outcomes:**")
         for e in sorted(fatal, key=lambda x: x.win_equity_delta):
             team_name = ctx.team_name(e.team)
-            opp_name = ctx.team_name(e.opponent)
             slot = ctx.tournament.slots.get(e.slot_id)
             round_name = ROUND_NAMES.get(slot.round, "") if slot else ""
             delta_str = f"{e.win_equity_delta:+.1%}"
