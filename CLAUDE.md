@@ -49,6 +49,7 @@ core/context.py        — Central data object (loads + caches everything)
 core/loader.py         — Data loading + bracket tree validation
 core/models.py         — Dataclasses (Team, GameSlot, Results, PlayerEntry, etc.)
 core/narrative.py      — Template-based text descriptions (fallback when AI unavailable)
+core/ai/client.py      — Anthropic client singleton; reads key from st.secrets or env var
 core/ai/tools.py       — Anthropic tool schemas + adapters wrapping core/ functions (Phase 4)
 core/ai/agent.py       — Claude tool-use loop: prompt → tool_use → execute → repeat
 core/ai/lenses.py      — System prompts + model config per output mode (headline/chat/recap)
