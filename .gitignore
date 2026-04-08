@@ -28,3 +28,7 @@ htmlcov/
 
 # Agent worktrees (created by Claude Code isolation)
 .claude/worktrees/
+
+# AI content cache and audit logs (generated at runtime)
+data/content/cache/
+data/ai_audit/
