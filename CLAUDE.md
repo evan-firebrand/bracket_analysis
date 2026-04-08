@@ -13,6 +13,7 @@ NCAA tournament bracket analysis app. Scores bracket picks, compares players hea
 - **Data files**: `data/tournament.json`, `data/results.json`, `data/odds.json`, `data/entries/player_brackets.json` — tracked in git.
 - **CI**: Ruff lint + pytest + PR validation on every PR to main.
 - **Architecture decisions**: `docs/decisions/` — rationale for structural constraints, searchable from the repo
+- **AI layer**: `core/ai/` exposes core/ functions as Anthropic tool-use schemas (Phase 4). Claude calls these tools to ground responses in real data. See ADR 006.
 
 ## How to run
 
@@ -47,7 +48,12 @@ core/comparison.py     — H2H diffs, pick popularity, chalk scores
 core/context.py        — Central data object (loads + caches everything)
 core/loader.py         — Data loading + bracket tree validation
 core/models.py         — Dataclasses (Team, GameSlot, Results, PlayerEntry, etc.)
-core/narrative.py      — Template-based text descriptions
+core/narrative.py      — Template-based text descriptions (fallback when AI unavailable)
+core/ai/tools.py       — Anthropic tool schemas + adapters wrapping core/ functions (Phase 4)
+core/ai/agent.py       — Claude tool-use loop: prompt → tool_use → execute → repeat
+core/ai/lenses.py      — System prompts + model config per output mode (headline/chat/recap)
+core/ai/evidence.py    — Evidence packet capture + audit logging per agent run
+core/ai/cache.py       — Content cache keyed on (lens, viewer, data_hash)
 analyses/              — Auto-discovered Streamlit plugins (presentation only)
 app.py                 — Streamlit web UI entry point
 src/storage.py         — JSON file read/write
