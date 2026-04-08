@@ -61,7 +61,7 @@ src/storage.py         — JSON file read/write
 scripts/               — CLI: validation, scenarios, CI scripts
 tests/                 — pytest test suite
 docs/DATA_CONTRACT.md  — Data schemas
-config.yaml            — Configuration (data_dir, app.my_player_name, ai.enabled/cache_enabled/cache_dir/audit_dir)
+config.yaml            — Configuration (data_dir, app.my_player_name, ai.enabled/cache_enabled/cache_dir/audit_dir/redteam_recap)
 pyproject.toml         — pytest + ruff config
 .github/workflows/     — CI pipeline (lint, test, PR validation, review checklist)
 ```
