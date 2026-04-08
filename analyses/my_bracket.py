@@ -35,7 +35,9 @@ def render(ctx: AnalysisContext):
         return
 
     # --- Headline ---
-    ai_summary = ctx.get_ai_player_summary(player)
+    ai_summary = ctx.generate_copy("player_summary", "my_bracket", viewer=player)
+    if ai_summary is None:
+        ai_summary = ctx.get_ai_player_summary(player)  # fall back to static
     if ai_summary:
         st.markdown(f"*{ai_summary}*")
     else:
