@@ -19,7 +19,10 @@ def render(ctx: AnalysisContext):
     st.header(f"{ICON} {TITLE}")
 
     # --- Headline narrative ---
-    headline = ctx.get_ai_headline()
+    viewer = st.session_state.get("viewing_player")
+    headline = ctx.generate_copy("headline", "leaderboard", viewer=viewer)
+    if headline is None:
+        headline = ctx.get_ai_headline()  # fall back to static approved.json
     if headline:
         st.markdown(f"*{headline}*")
     elif len(ctx.leaderboard) > 0:

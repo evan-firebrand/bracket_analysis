@@ -129,7 +129,10 @@ def _render_home(ctx: AnalysisContext, plugins):
     st.title("\U0001f3c0 NCAA Bracket Analysis")
 
     # AI headline if available
-    headline = ctx.get_ai_headline()
+    viewer = st.session_state.get("viewing_player")
+    headline = ctx.generate_copy("headline", "home", viewer=viewer)
+    if headline is None:
+        headline = ctx.get_ai_headline()
     if headline:
         st.markdown(f"### *{headline}*")
 
