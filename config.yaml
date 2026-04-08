@@ -12,6 +12,7 @@ ai:
   cache_enabled: true         # cache page copy by (lens, viewer, data_hash); chat is never cached
   cache_dir: "data/content/cache"
   audit_dir: "data/ai_audit"
+  redteam_recap: false        # set true to add a second AI pass that red-teams round recap claims
 
 # Data sources (for reference — data is maintained manually)
 sources:

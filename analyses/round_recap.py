@@ -30,6 +30,17 @@ def render(ctx: AnalysisContext) -> None:
         st.info("The tournament hasn't started yet. Check back once games are played.")
         return
 
+    # Live AI recap with optional red-team review (degrades to None if disabled)
+    viewer = st.session_state.get("viewing_player")
+    ai_recap, ai_redteam = ctx.generate_recap_with_redteam(viewer=viewer)
+    if ai_recap:
+        st.subheader("AI Recap")
+        st.markdown(ai_recap)
+        if ai_redteam:
+            with st.expander("Red-team review", expanded=False):
+                st.markdown(ai_redteam)
+        st.divider()
+
     _render_round_header(recap)
     _render_game_results(recap, ctx)
     st.divider()
