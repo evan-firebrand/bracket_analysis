@@ -211,7 +211,7 @@ Match this exact schema:
     {{"title": "<short story title>", "body": "<2-3 sentences of narrative>"}},
     {{"title": "<short story title>", "body": "<2-3 sentences of narrative>"}}
   ],
-  "recap": "<paragraph (4-6 sentences) you could paste into a group chat — casual, specific, funny if the situation warrants>",
+  "recap": "<4-6 sentences you could paste into a group chat — casual, specific, funny if warranted>",
   "player_summaries": {{
     {_player_summary_schema(player_keys, player_names)}
   }}
