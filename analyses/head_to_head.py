@@ -1,6 +1,11 @@
 """Head to Head plugin — compare any two brackets side by side.
 
-Presentation only. Business logic lives in core/comparison.py.
+Extended with:
+- H2H win equity from scenario engine
+- Indirect relevance annotations (shared games that gate divergence)
+- Hinge game identification
+
+Presentation only. Business logic lives in core/comparison.py and core/scenarios.py.
 """
 
 from __future__ import annotations
@@ -9,7 +14,10 @@ import streamlit as st
 
 from core.comparison import head_to_head
 from core.context import AnalysisContext
+from core.metrics import pairwise_beat_probability
+from core.scenarios import run_scenarios
 from core.scoring import POINTS_PER_ROUND, ROUND_NAMES
+from core.tournament import get_remaining_slots
 
 TITLE = "Head to Head"
 DESCRIPTION = "Compare any two brackets side by side"
@@ -49,34 +57,45 @@ def render(ctx: AnalysisContext):
     # Get comparison data from core
     h2h = head_to_head(entry_a, entry_b, ctx.tournament, ctx.results)
 
-    # --- Narrative summary ---
-    total_slots = len(ctx.tournament.slot_order)
-    st.markdown(
-        f"**{player_a}** and **{player_b}** agree on "
-        f"**{len(h2h.agree)} of {total_slots}** picks. "
-        f"They differ on **{h2h.total_disagree}** games"
-        + (f" \u2014 the {len(h2h.disagree_pending)} unresolved differences "
-           f"are worth up to **{h2h.pending_points} pts**. "
-           f"That's where this race gets decided."
-           if h2h.disagree_pending else ".")
-    )
-
     # --- Score comparison ---
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric(player_a, f"{scored_a.total_points} pts")
     with col2:
         diff = scored_a.total_points - scored_b.total_points
-        label = f"{player_a} +{diff}" if diff > 0 else (f"{player_b} +{-diff}" if diff < 0 else "Tied")
+        label = (
+            f"{player_a} +{diff}" if diff > 0
+            else (f"{player_b} +{-diff}" if diff < 0 else "Tied")
+        )
         st.metric("Difference", label)
     with col3:
         st.metric(player_b, f"{scored_b.total_points} pts")
 
+    # --- H2H win equity (scenario-based) ---
+    _render_h2h_equity(ctx, player_a, player_b, scored_a, scored_b)
+
+    # --- Narrative summary ---
+    total_slots = len(ctx.tournament.slot_order)
+    st.markdown(
+        f"**{player_a}** and **{player_b}** agree on "
+        f"**{len(h2h.agree)} of {total_slots}** picks. "
+        f"They differ on **{h2h.total_disagree}** games"
+        + (
+            f" \u2014 the {len(h2h.disagree_pending)} unresolved differences "
+            f"are worth up to **{h2h.pending_points} pts**. "
+            f"That's where this race gets decided."
+            if h2h.disagree_pending
+            else "."
+        )
+    )
+
     # --- Where they differ ---
     st.subheader("Where They Differ")
-
     _render_resolved_diffs(ctx, entry_a, entry_b, h2h, player_a, player_b)
     _render_pending_diffs(ctx, entry_a, entry_b, h2h, player_a, player_b)
+
+    # --- Indirect relevance: shared games that still matter ---
+    _render_indirect_relevance(ctx, entry_a, entry_b, h2h, player_a, player_b)
 
     # --- Agreement list (expandable) ---
     with st.expander(f"Games they agree on ({len(h2h.agree)})"):
@@ -88,6 +107,50 @@ def render(ctx: AnalysisContext):
             else:
                 icon = "\u23f3"
             st.markdown(f"{icon} {pick_name} \u2014 {ROUND_NAMES.get(slot.round, '')}")
+
+
+def _render_h2h_equity(ctx, player_a, player_b, scored_a, scored_b):
+    """Show who leads this head-to-head based on remaining scenarios."""
+    if ctx.games_remaining() == 0:
+        return
+
+    with st.spinner("Computing H2H equity..."):
+        sr = run_scenarios(ctx.entries, ctx.tournament, ctx.results)
+
+    p_a_beats_b = pairwise_beat_probability(sr, player_a, player_b)
+    p_b_beats_a = 1.0 - p_a_beats_b
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(f"{player_a} wins the H2H", f"{p_a_beats_b:.1%}")
+    with col2:
+        engine_label = "exact" if sr.engine == "brute_force" else f"{sr.total_scenarios:,} sim."
+        lead_name = player_a if p_a_beats_b >= 0.5 else player_b
+        lead_pct = max(p_a_beats_b, p_b_beats_a)
+        st.metric("H2H Leader", f"{lead_name} ({lead_pct:.0%})")
+        st.caption(f"Based on {engine_label} scenarios")
+    with col3:
+        st.metric(f"{player_b} wins the H2H", f"{p_b_beats_a:.1%}")
+
+    # Narrative
+    if abs(p_a_beats_b - 0.5) < 0.05:
+        st.info("This H2H is nearly a toss-up — either player can come out ahead.")
+    elif p_a_beats_b > 0.5:
+        gap = scored_a.total_points - scored_b.total_points
+        if gap > 0:
+            st.success(
+                f"**{player_a}** leads by {gap} pts and wins this matchup in "
+                f"{p_a_beats_b:.0%} of remaining scenarios."
+            )
+        else:
+            st.info(
+                f"**{player_a}** trails on points but has better remaining picks — "
+                f"wins this H2H in {p_a_beats_b:.0%} of scenarios."
+            )
+    else:
+        st.warning(
+            f"**{player_b}** is favored in this H2H at {p_b_beats_a:.0%} of scenarios."
+        )
 
 
 def _render_resolved_diffs(ctx, entry_a, entry_b, h2h, player_a, player_b):
@@ -141,6 +204,69 @@ def _render_pending_diffs(ctx, entry_a, entry_b, h2h, player_a, player_b):
             f"{b_alive} **{player_b}**: {ctx.team_name(pick_b)} "
             f"\u2014 {ROUND_NAMES.get(slot.round, '')} ({pts} pts at stake)"
         )
+
+
+def _render_indirect_relevance(ctx, entry_a, entry_b, h2h, player_a, player_b):
+    """Identify shared-pick games that still matter because they gate divergence points.
+
+    A shared game has indirect relevance if it feeds into a slot where the two
+    players diverge — meaning the shared game must resolve for the divergence
+    to even become possible.
+    """
+    remaining = set(get_remaining_slots(ctx.tournament, ctx.results))
+
+    # Find divergence slots that are still live
+    live_divergence = set(h2h.disagree_pending)
+
+    # For each shared pending slot, check if it feeds into a live divergence slot
+    # by tracing the feeds_into chain
+    indirectly_relevant = []
+
+    for slot_id in h2h.agree:
+        if slot_id not in remaining:
+            continue  # already resolved
+
+        # Walk the feeds_into chain from this slot
+        current = ctx.tournament.slots[slot_id].feeds_into
+        while current:
+            if current in live_divergence:
+                # This shared game gates a divergence point
+                pick = entry_a.picks.get(slot_id)
+                div_slot = ctx.tournament.slots[current]
+                pick_a_at_div = entry_a.picks.get(current)
+                pick_b_at_div = entry_b.picks.get(current)
+                indirectly_relevant.append({
+                    "slot_id": slot_id,
+                    "pick": pick,
+                    "gates_slot_id": current,
+                    "gates_round": div_slot.round,
+                    "div_pick_a": pick_a_at_div,
+                    "div_pick_b": pick_b_at_div,
+                })
+                break
+            current = ctx.tournament.slots[current].feeds_into if current in ctx.tournament.slots else None
+
+    if not indirectly_relevant:
+        return
+
+    with st.expander(
+        f"Shared games that still matter ({len(indirectly_relevant)}) — indirect relevance"
+    ):
+        st.caption(
+            "These games have the same pick from both players, but they matter because "
+            "they control access to a later slot where the brackets diverge."
+        )
+        for item in indirectly_relevant:
+            slot = ctx.tournament.slots[item["slot_id"]]
+            gate_round_name = ROUND_NAMES.get(item["gates_round"], "")
+            pick_name = ctx.team_name(item["pick"]) if item["pick"] else "?"
+            div_a = ctx.team_name(item["div_pick_a"]) if item["div_pick_a"] else "?"
+            div_b = ctx.team_name(item["div_pick_b"]) if item["div_pick_b"] else "?"
+            st.markdown(
+                f"\u23f3 **{pick_name}** must advance ({ROUND_NAMES.get(slot.round, '')}) "
+                f"to decide the {gate_round_name} split: "
+                f"{player_a} \u2192 {div_a} vs {player_b} \u2192 {div_b}"
+            )
 
 
 def summarize(ctx: AnalysisContext) -> str | None:
