@@ -14,13 +14,14 @@ from pathlib import Path
 from typing import Callable
 
 # Category display order and labels
-CATEGORY_ORDER = ["standings", "my_bracket", "matchups", "scenarios", "stories"]
+CATEGORY_ORDER = ["standings", "my_bracket", "matchups", "scenarios", "stories", "ai"]
 CATEGORY_LABELS = {
     "standings": "Standings",
     "my_bracket": "My Bracket",
     "matchups": "Matchups",
     "scenarios": "Scenarios",
     "stories": "Stories & Insights",
+    "ai": "Ask Claude",
 }
 
 REQUIRED_ATTRS = ["TITLE", "DESCRIPTION", "CATEGORY", "ORDER", "ICON", "render"]

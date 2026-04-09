@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import html
 import os
 import re
 import sys
@@ -14,6 +15,7 @@ REQUIRED_SECTIONS = [
     "Decisions",
     "Testing",
     "Scope",
+    "Squash Commit",
 ]
 
 MIN_LINES_FOR_DETAIL = 2
@@ -66,6 +68,10 @@ def main() -> None:
     body = os.environ.get("PR_BODY", "")
     if not body and not sys.stdin.isatty():
         body = sys.stdin.read()
+
+    # GitHub Actions (and some MCP tools) HTML-encode PR bodies.
+    # Unescape so section headers like "Issues & Revisions" match correctly.
+    body = html.unescape(body)
 
     errors, warnings = validate_pr_body(body)
 

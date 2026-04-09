@@ -1,0 +1,11 @@
+{
+  "last_updated": "2026-03-24T20:30:00Z",
+  "results": {
+    "r1_east_1v4": {"winner": "duke", "loser": "purdue", "score": "78-65"},
+    "r1_east_2v3": {"winner": "gonzaga", "loser": "unc", "score": "71-68"},
+    "r1_west_1v4": {"winner": "houston", "loser": "arizona", "score": "82-70"},
+    "r1_west_2v3": {"winner": "alabama", "loser": "tennessee", "score": "75-72"},
+    "r2_east_1": {"winner": "duke", "loser": "gonzaga", "score": "80-74"},
+    "r2_west_1": {"winner": "alabama", "loser": "houston", "score": "68-65"}
+  }
+}

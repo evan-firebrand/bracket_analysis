@@ -33,6 +33,11 @@ RULES: list[tuple[str, callable, str]] = [
         "Scoring logic changed — did you update `tests/test_scoring.py`?",
     ),
     (
+        "ai-tests",
+        lambda f: f.startswith("core/ai/") and f.endswith(".py"),
+        "AI layer changed — did you update or add tests in `tests/test_ai_*.py`?",
+    ),
+    (
         "plugin-attrs",
         lambda f: f.startswith("analyses/") and f.endswith(".py") and f != "analyses/__init__.py",
         "Analysis plugin changed — does it have all required attrs"
@@ -47,6 +52,18 @@ RULES: list[tuple[str, callable, str]] = [
         "config-docs",
         lambda f: f == "config.yaml",
         "Config changed — did you document new keys in `README.md` or `CLAUDE.md`?",
+    ),
+    (
+        "claude-md-sync",
+        lambda f: (f.startswith("core/") and f.endswith(".py"))
+        or f.startswith("analyses/")
+        or f == "docs/DATA_CONTRACT.md",
+        "Architecture may have changed — did you update `CLAUDE.md` and/or add a `docs/decisions/` ADR?",
+    ),
+    (
+        "adr-status",
+        lambda f: f.startswith("docs/decisions/") and f.endswith(".md") and "README" not in f,
+        "ADR changed — is the `## Status` field set correctly (Active / Superseded / Deprecated)?",
     ),
 ]
 
