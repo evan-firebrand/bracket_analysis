@@ -30,14 +30,27 @@ class AnalysisContext:
     so plugins don't need to re-derive common information.
     """
 
-    def __init__(self, data_dir: str | Path = "data"):
+    def __init__(self, data_dir: str | Path = "data", view_as_of_round: int | None = None):
         data_dir = Path(data_dir)
 
         # Load raw data
         self.tournament: TournamentStructure = load_tournament(
             data_dir / "tournament.json"
         )
-        self.results: Results = load_results(data_dir / "results.json")
+        raw_results = load_results(data_dir / "results.json")
+
+        # Optionally filter results to a historical round snapshot
+        if view_as_of_round is not None:
+            filtered = {
+                slot_id: result
+                for slot_id, result in raw_results.results.items()
+                if (slot := self.tournament.slots.get(slot_id)) and slot.round <= view_as_of_round
+            }
+            self.results = Results(last_updated=raw_results.last_updated, results=filtered)
+        else:
+            self.results = raw_results
+
+        self.view_round: int | None = view_as_of_round  # None = live/current
         self.entries: list[PlayerEntry] = load_entries(
             data_dir / "entries" / "player_brackets.json"
         )
