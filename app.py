@@ -10,6 +10,7 @@ import yaml
 
 from analyses import discover_plugins, get_plugins_by_category
 from core.context import AnalysisContext
+from core.scoring import ROUND_NAMES
 
 
 def _load_config() -> dict:
@@ -27,18 +28,18 @@ st.set_page_config(
 
 
 @st.cache_data(ttl=60)
-def load_context() -> AnalysisContext:
-    """Load all data and pre-compute. Cached for 60 seconds."""
-    return AnalysisContext(data_dir="data")
+def load_context(view_as_of_round: int | None = None) -> AnalysisContext:
+    """Load all data and pre-compute. Cached for 60 seconds per round view."""
+    return AnalysisContext(data_dir="data", view_as_of_round=view_as_of_round)
 
 
 def main():
     config = _load_config()
 
-    # Load data
+    # Load full (live) data — used to determine available rounds and as default view
     try:
-        ctx = load_context()
-        ctx.configure_ai(config.get("ai", {}) or {})
+        full_ctx = load_context()
+        full_ctx.configure_ai(config.get("ai", {}) or {})
     except FileNotFoundError as e:
         st.error(f"Data file not found: {e}")
         st.info("Make sure data files exist in the `data/` directory.")
@@ -51,10 +52,18 @@ def main():
     plugins = discover_plugins()
     plugins_by_cat = get_plugins_by_category(plugins)
 
+    # Determine which rounds have completed games (for Time Machine options)
+    completed_rounds = sorted({
+        full_ctx.tournament.slots[sid].round
+        for sid in full_ctx.results.results
+        if sid in full_ctx.tournament.slots
+    })
+
     # --- Sidebar navigation ---
+    view_round: int | None = None
     with st.sidebar:
         st.title("\U0001f3c0 Bracket Analysis")
-        st.caption(f"{ctx.tournament.year} NCAA Tournament")
+        st.caption(f"{full_ctx.tournament.year} NCAA Tournament")
 
         # Refresh button
         if st.button("Refresh Data", use_container_width=True):
@@ -65,7 +74,7 @@ def main():
 
         # Global "Viewing as" player selector
         my_player_name = config.get("app", {}).get("my_player_name", "")
-        player_names = ctx.player_names()
+        player_names = full_ctx.player_names()
         default_index = 0
         if my_player_name and my_player_name in player_names:
             default_index = player_names.index(my_player_name)
@@ -89,6 +98,30 @@ def main():
             "Navigation",
             list(page_options.keys()),
             label_visibility="collapsed",
+        )
+
+        # Time Machine — only shown when there are completed rounds
+        if completed_rounds:
+            st.divider()
+            st.caption("Time Machine")
+            round_labels: dict[str, int | None] = {"Current": None}
+            round_labels.update({f"After {ROUND_NAMES[r]}": r for r in completed_rounds})
+            time_label = st.selectbox(
+                "View as of...",
+                list(round_labels.keys()),
+                index=0,
+                label_visibility="collapsed",
+            )
+            view_round = round_labels[time_label]
+
+    # Load context for the selected view (cached separately per round)
+    ctx = load_context(view_round) if view_round is not None else full_ctx
+
+    # Historical mode banner
+    if view_round is not None:
+        st.info(
+            f"Viewing tournament after **{ROUND_NAMES[view_round]}** — "
+            f"{ctx.results.completed_count()} of {len(ctx.tournament.slots)} games completed."
         )
 
     # --- Main content area ---
